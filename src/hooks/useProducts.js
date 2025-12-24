@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { products as staticProducts, flashSaleProducts as staticFlashSale } from '@/data/products';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -32,8 +33,24 @@ export function useProducts(options = {}) {
           throw new Error(data.message || 'Failed to fetch products');
         }
       } catch (err) {
-        setError(err.message);
-        setProducts([]);
+        // Fallback to static data when backend is unavailable
+        let fallbackProducts = [...staticProducts];
+        
+        if (category) {
+          fallbackProducts = fallbackProducts.filter(p => p.category === category);
+        }
+        if (sale) {
+          fallbackProducts = fallbackProducts.filter(p => p.isSale);
+        }
+        if (isNew) {
+          fallbackProducts = fallbackProducts.filter(p => p.isNew);
+        }
+        if (limit) {
+          fallbackProducts = fallbackProducts.slice(0, limit);
+        }
+        
+        setProducts(fallbackProducts);
+        setError(null);
       } finally {
         setLoading(false);
       }
@@ -70,8 +87,15 @@ export function useProduct(id) {
           throw new Error(data.message || 'Product not found');
         }
       } catch (err) {
-        setError(err.message);
-        setProduct(null);
+        // Fallback to static data when backend is unavailable
+        const fallbackProduct = staticProducts.find(p => p.id === id);
+        if (fallbackProduct) {
+          setProduct(fallbackProduct);
+          setError(null);
+        } else {
+          setError('Product not found');
+          setProduct(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -103,8 +127,9 @@ export function useFlashSaleProducts() {
           throw new Error(data.message || 'Failed to fetch flash sale products');
         }
       } catch (err) {
-        setError(err.message);
-        setProducts([]);
+        // Fallback to static flash sale data when backend is unavailable
+        setProducts(staticFlashSale);
+        setError(null);
       } finally {
         setLoading(false);
       }
