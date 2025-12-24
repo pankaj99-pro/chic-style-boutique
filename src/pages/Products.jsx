@@ -18,10 +18,18 @@ export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState('grid');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
 
   const selectedCategory = searchParams.get('category') || 'all';
+
+  // Sync search query with URL params
+  React.useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    if (urlSearch !== searchQuery) {
+      setSearchQuery(urlSearch);
+    }
+  }, [searchParams]);
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
