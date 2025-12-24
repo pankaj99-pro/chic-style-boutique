@@ -113,11 +113,11 @@ export default function Wishlist() {
                   <div className="flex items-center gap-2 mb-4">
                     {product.originalPrice && (
                       <span className="text-muted-foreground line-through text-sm">
-                        ${product.originalPrice.toFixed(2)}
+                        ${Number(product.originalPrice).toFixed(2)}
                       </span>
                     )}
                     <span className="text-primary font-semibold">
-                      ${product.price.toFixed(2)}
+                      ${Number(product.price || 0).toFixed(2)}
                     </span>
                   </div>
 
