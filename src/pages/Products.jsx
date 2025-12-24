@@ -1,25 +1,53 @@
 import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, Grid, List } from 'lucide-react';
+import { SlidersHorizontal, Grid, List, Search } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import ProductCard from '../components/ui/ProductCard';
 import { products, categories } from '../data/products';
 
+const priceRanges = [
+  { label: 'Under $50', min: 0, max: 50 },
+  { label: '$50 - $100', min: 50, max: 100 },
+  { label: '$100 - $150', min: 100, max: 150 },
+  { label: 'Above $150', min: 150, max: Infinity },
+];
+
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
 
   const selectedCategory = searchParams.get('category') || 'all';
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(query) ||
+        p.description?.toLowerCase().includes(query) ||
+        p.category?.toLowerCase().includes(query)
+      );
+    }
+
     // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => p.category === selectedCategory);
+    }
+
+    // Filter by price range
+    if (selectedPriceRanges.length > 0) {
+      filtered = filtered.filter(p => 
+        selectedPriceRanges.some(range => 
+          p.price >= range.min && p.price < range.max
+        )
+      );
     }
 
     // Sort products
@@ -38,7 +66,7 @@ export default function Products() {
     }
 
     return filtered;
-  }, [selectedCategory, sortBy]);
+  }, [selectedCategory, sortBy, searchQuery, selectedPriceRanges]);
 
   const handleCategoryChange = (category) => {
     if (category === 'all') {
@@ -47,6 +75,16 @@ export default function Products() {
       searchParams.set('category', category);
     }
     setSearchParams(searchParams);
+  };
+
+  const handlePriceRangeChange = (range) => {
+    setSelectedPriceRanges(prev => {
+      const exists = prev.find(r => r.label === range.label);
+      if (exists) {
+        return prev.filter(r => r.label !== range.label);
+      }
+      return [...prev, range];
+    });
   };
 
   return (
@@ -79,6 +117,21 @@ export default function Products() {
                 <div className="flex items-center gap-2 mb-6">
                   <SlidersHorizontal className="w-5 h-5 text-primary" />
                   <h2 className="font-display font-semibold text-lg">Filters</h2>
+                </div>
+
+                {/* Search */}
+                <div className="mb-6">
+                  <h3 className="font-medium text-foreground mb-3">Search</h3>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search products..."
+                      className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
                 </div>
 
                 {/* Categories */}
@@ -115,14 +168,33 @@ export default function Products() {
                 <div>
                   <h3 className="font-medium text-foreground mb-3">Price Range</h3>
                   <div className="space-y-2">
-                    {['Under $50', '$50 - $100', '$100 - $150', 'Above $150'].map((range) => (
-                      <label key={range} className="flex items-center gap-2 text-muted-foreground cursor-pointer">
-                        <input type="checkbox" className="rounded text-primary focus:ring-primary" />
-                        {range}
+                    {priceRanges.map((range) => (
+                      <label key={range.label} className="flex items-center gap-2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedPriceRanges.some(r => r.label === range.label)}
+                          onChange={() => handlePriceRangeChange(range)}
+                          className="rounded text-primary focus:ring-primary" 
+                        />
+                        {range.label}
                       </label>
                     ))}
                   </div>
                 </div>
+
+                {/* Clear Filters */}
+                {(searchQuery || selectedPriceRanges.length > 0 || selectedCategory !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedPriceRanges([]);
+                      handleCategoryChange('all');
+                    }}
+                    className="mt-6 w-full py-2 px-4 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
               </div>
             </aside>
 
@@ -139,7 +211,7 @@ export default function Products() {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="bg-card border border-border rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="bg-card border border-border rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                   >
                     <option value="default">Default Sorting</option>
                     <option value="price-low">Price: Low to High</option>
@@ -193,6 +265,16 @@ export default function Products() {
               ) : (
                 <div className="text-center py-16">
                   <p className="text-muted-foreground text-lg">No products found</p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedPriceRanges([]);
+                      handleCategoryChange('all');
+                    }}
+                    className="mt-4 text-primary hover:underline"
+                  >
+                    Clear filters
+                  </button>
                 </div>
               )}
             </div>
