@@ -112,10 +112,7 @@ serve(async (req) => {
         },
       ],
       automatic_tax: { enabled: false },
-      billing_address_collection: "required",
-      shipping_address_collection: {
-        allowed_countries: ["US", "CA", "GB", "AU"],
-      },
+      billing_address_collection: "auto",
     };
 
     // Add customer email if provided
