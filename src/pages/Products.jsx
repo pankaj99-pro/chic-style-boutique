@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Grid, List, Search, Loader2 } from 'lucide-react';
@@ -23,44 +23,39 @@ export default function Products() {
   const [selectedPriceRange, setSelectedPriceRange] = useState(null);
 
   const selectedCategory = searchParams.get('category') || 'all';
-  
-  // Fetch products from backend
+
   const { products, loading, error } = useProducts();
 
-  // Sync search query with URL params
-  React.useEffect(() => {
-    const urlSearch = searchParams.get('search') || '';
-    if (urlSearch !== searchQuery) {
-      setSearchQuery(urlSearch);
-    }
-  }, [searchParams]);
+  /* ---------- FIX 1: sync URL search ---------- */
+  useEffect(() => {
+  const urlSearch = searchParams.get('search') || '';
+  setSearchQuery(urlSearch);
+}, [searchParams]);
 
+
+  /* ---------- FIX 2: products added to dependency ---------- */
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(query) ||
         p.description?.toLowerCase().includes(query) ||
         p.category?.toLowerCase().includes(query)
       );
     }
 
-    // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
 
-    // Filter by price range
     if (selectedPriceRange) {
-      filtered = filtered.filter(p => 
-        p.price >= selectedPriceRange.min && p.price < selectedPriceRange.max
+      filtered = filtered.filter(
+        p => p.price >= selectedPriceRange.min && p.price < selectedPriceRange.max
       );
     }
 
-    // Sort products
     switch (sortBy) {
       case 'price-low':
         filtered.sort((a, b) => a.price - b.price);
@@ -76,23 +71,25 @@ export default function Products() {
     }
 
     return filtered;
-  }, [selectedCategory, sortBy, searchQuery, selectedPriceRange]);
+  }, [products, selectedCategory, sortBy, searchQuery, selectedPriceRange]);
 
+  /* ---------- FIX 3: clone searchParams ---------- */
   const handleCategoryChange = (category) => {
+    const params = new URLSearchParams(searchParams);
+
     if (category === 'all') {
-      searchParams.delete('category');
+      params.delete('category');
     } else {
-      searchParams.set('category', category);
+      params.set('category', category);
     }
-    setSearchParams(searchParams);
+
+    setSearchParams(params);
   };
 
   const handlePriceRangeChange = (range) => {
-    if (selectedPriceRange?.label === range.label) {
-      setSelectedPriceRange(null);
-    } else {
-      setSelectedPriceRange(range);
-    }
+    setSelectedPriceRange(prev =>
+      prev?.label === range.label ? null : range
+    );
   };
 
   return (
