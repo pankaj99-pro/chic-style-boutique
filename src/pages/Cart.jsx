@@ -198,10 +198,10 @@ export default function Cart() {
                   </div>
                 </div>
 
-                <button className="w-full btn-primary flex items-center justify-center gap-2">
+                <Link to="/checkout" className="w-full btn-primary flex items-center justify-center gap-2">
                   Proceed to Checkout
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </Link>
 
                 <Link
                   to="/products"
