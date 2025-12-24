@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Heart, ShoppingBag, Menu, X, ChevronDown } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
@@ -7,7 +7,9 @@ import { useWishlist } from '../../context/WishlistContext';
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
   const { totalItems: cartItems } = useCart();
   const { totalItems: wishlistItems } = useWishlist();
 
@@ -18,6 +20,15 @@ export default function Header() {
     { name: 'Products', path: '/products' },
     { name: 'Orders', path: '/orders' },
   ];
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+      setIsSearchOpen(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md shadow-soft">
@@ -92,14 +103,24 @@ export default function Header() {
 
         {/* Search Bar */}
         {isSearchOpen && (
-          <div className="pb-4 animate-fade-in-up">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full input-newsletter"
-              autoFocus
-            />
-          </div>
+          <form onSubmit={handleSearch} className="pb-4 animate-fade-in-up">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="w-full pl-4 pr-12 py-3 rounded-full border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            </div>
+          </form>
         )}
       </div>
 
