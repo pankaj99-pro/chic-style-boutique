@@ -33,7 +33,7 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ["line_items", "customer", "shipping_details"],
+      expand: ["line_items"],
     });
 
     logStep("Session retrieved", { 
