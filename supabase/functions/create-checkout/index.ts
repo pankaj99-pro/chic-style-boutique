@@ -63,7 +63,7 @@ serve(async (req) => {
     // Convert cart items to Stripe line items
     const lineItems = items.map((item) => ({
       price_data: {
-        currency: "usd",
+        currency: "inr",
         product_data: {
           name: `${item.product.name} (Size: ${item.size})`,
           images: [item.product.image],
@@ -72,7 +72,7 @@ serve(async (req) => {
             size: item.size,
           },
         },
-        unit_amount: Math.round(item.product.price * 100), // Convert to cents
+        unit_amount: Math.round(item.product.price * 100), // Convert to paise
       },
       quantity: item.quantity,
     }));
@@ -91,11 +91,11 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/checkout`,
       shipping_options: [
         {
-          shipping_rate_data: {
+      shipping_rate_data: {
             type: "fixed_amount",
             fixed_amount: {
               amount: shippingCost,
-              currency: "usd",
+              currency: "inr",
             },
             display_name: shippingCost === 0 ? "Free Shipping" : "Standard Shipping",
             delivery_estimate: {
