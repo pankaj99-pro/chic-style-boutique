@@ -1,61 +1,26 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Eye } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
-import { useWishlist } from '../../context/WishlistContext';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../hooks/use-toast';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { Heart, ShoppingBag, Eye } from "lucide-react";
+import { useCart } from "../../context/CartContext";
+import { useWishlist } from "../../context/WishlistContext";
 
 export default function ProductCard({ product }) {
   const [isHovered, setIsHovered] = useState(false);
   const { addItem: addToCart } = useCart();
   const { toggleItem, isInWishlist } = useWishlist();
-  const { isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
 
   const inWishlist = isInWishlist(product.id);
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!isAuthenticated) {
-      toast({
-        title: 'Login Required',
-        description: 'Please sign in to add items to cart',
-      });
-      navigate('/auth');
-      return;
-    }
-    
     addToCart(product);
-    toast({
-      title: 'Added to Cart',
-      description: `${product.name} has been added to your cart`,
-    });
   };
 
   const handleToggleWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!isAuthenticated) {
-      toast({
-        title: 'Login Required',
-        description: 'Please sign in to add items to wishlist',
-      });
-      navigate('/auth');
-      return;
-    }
-    
     toggleItem(product);
-    toast({
-      title: inWishlist ? 'Removed from Wishlist' : 'Added to Wishlist',
-      description: inWishlist 
-        ? `${product.name} has been removed from your wishlist`
-        : `${product.name} has been added to your wishlist`,
-    });
   };
 
   return (
@@ -76,17 +41,10 @@ export default function ProductCard({ product }) {
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {product.isSale && (
-              <span className="badge-sale">Sale</span>
-            )}
+            {product.isSale && <span className="badge-sale">Sale</span>}
             {product.isNew && (
               <span className="bg-charcoal text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
                 New
-              </span>
-            )}
-            {!product.inStock && (
-              <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
-                Out of Stock
               </span>
             )}
           </div>
@@ -101,25 +59,31 @@ export default function ProductCard({ product }) {
           {/* Hover Actions */}
           <div
             className={`absolute inset-0 bg-foreground/5 flex items-center justify-center gap-3 transition-opacity duration-300 ${
-              isHovered ? 'opacity-100' : 'opacity-0'
+              isHovered ? "opacity-100" : "opacity-0"
             }`}
           >
             <button
               onClick={handleToggleWishlist}
               className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-card ${
                 inWishlist
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card text-foreground hover:bg-primary hover:text-primary-foreground'
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-foreground hover:bg-primary hover:text-primary-foreground"
               }`}
               aria-label="Add to wishlist"
             >
-              <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
+              <Heart className={`w-5 h-5 ${inWishlist ? "fill-current" : ""}`} />
             </button>
 
             <button
-              onClick={handleAddToCart}
+              onClick={product.inStock ? handleAddToCart : undefined}
               disabled={!product.inStock}
-              className="w-11 h-11 rounded-full bg-card text-foreground flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-card disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-card
+    ${
+      product.inStock
+        ? "bg-card text-foreground hover:bg-primary hover:text-primary-foreground"
+        : "bg-card text-muted-foreground cursor-not-allowed opacity-50"
+    }
+  `}
               aria-label="Add to cart"
             >
               <ShoppingBag className="w-5 h-5" />
@@ -142,13 +106,9 @@ export default function ProductCard({ product }) {
           </h3>
           <div className="flex items-center gap-2">
             {product.originalPrice && (
-              <span className="text-muted-foreground line-through text-sm">
-                ${product.originalPrice.toFixed(2)}
-              </span>
+              <span className="text-muted-foreground line-through text-sm">${product.originalPrice.toFixed(2)}</span>
             )}
-            <span className="text-primary font-semibold text-lg">
-              ${product.price.toFixed(2)}
-            </span>
+            <span className="text-primary font-semibold text-lg">${product.price.toFixed(2)}</span>
           </div>
         </div>
       </div>
