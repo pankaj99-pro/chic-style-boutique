@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { SlidersHorizontal, Grid, List, Search } from 'lucide-react';
+import { SlidersHorizontal, Grid, List, Search, Loader2 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import ProductCard from '../components/ui/ProductCard';
-import { products, categories } from '../data/products';
+import { useProducts } from '../hooks/useProducts';
+import { categories } from '../data/products';
 
 const priceRanges = [
   { label: 'Under $50', min: 0, max: 50 },
@@ -22,6 +23,9 @@ export default function Products() {
   const [selectedPriceRange, setSelectedPriceRange] = useState(null);
 
   const selectedCategory = searchParams.get('category') || 'all';
+  
+  // Fetch products from backend
+  const { products, loading, error } = useProducts();
 
   // Sync search query with URL params
   React.useEffect(() => {
@@ -249,7 +253,16 @@ export default function Products() {
               </div>
 
               {/* Products */}
-              {filteredProducts.length > 0 ? (
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-16">
+                  <p className="text-destructive text-lg">{error}</p>
+                  <p className="text-muted-foreground mt-2">Make sure the backend server is running</p>
+                </div>
+              ) : filteredProducts.length > 0 ? (
                 <div className={`grid gap-6 ${
                   viewMode === 'grid'
                     ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
@@ -257,11 +270,11 @@ export default function Products() {
                 }`}>
                   {filteredProducts.map((product, index) => (
                     <div
-                      key={product.id}
+                      key={product._id || product.id}
                       className="animate-fade-in-up"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
-                      <ProductCard product={product} />
+                      <ProductCard product={{ ...product, id: product._id || product.id }} />
                     </div>
                   ))}
                 </div>

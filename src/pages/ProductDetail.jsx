@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Heart, Minus, Plus, ShoppingBag, ChevronLeft } from "lucide-react";
+import { Heart, Minus, Plus, ShoppingBag, ChevronLeft, Loader2 } from "lucide-react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import ProductCard from "../components/ui/ProductCard";
-import { products } from "../data/products";
+import { useProduct, useProducts } from "../hooks/useProducts";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useToast } from "../hooks/use-toast";
@@ -20,16 +20,36 @@ export default function ProductDetail() {
   const { toggleItem, isInWishlist } = useWishlist();
   const { toast } = useToast();
 
-  const product = products.find((p) => p.id === id);
-  const relatedProducts = products.filter((p) => p.id !== id).slice(0, 4);
+  const { product: fetchedProduct, loading, error } = useProduct(id);
+  const { products: allProducts } = useProducts({ limit: 5 });
+  
+  const product = fetchedProduct ? { ...fetchedProduct, id: fetchedProduct._id || fetchedProduct.id } : null;
+  const relatedProducts = allProducts
+    .filter((p) => (p._id || p.id) !== id)
+    .slice(0, 4)
+    .map(p => ({ ...p, id: p._id || p.id }));
 
-  if (!product) {
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <main className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error || !product) {
     return (
       <>
         <Header />
         <main className="min-h-screen flex items-center justify-center bg-background">
           <div className="text-center">
-            <h1 className="text-2xl font-display font-bold text-foreground mb-4">Product Not Found</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground mb-4">
+              {error || "Product Not Found"}
+            </h1>
             <Link to="/products" className="btn-primary">
               Browse Products
             </Link>
