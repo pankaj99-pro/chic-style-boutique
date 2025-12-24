@@ -46,7 +46,7 @@ export default function Header() {
           {/* Logo */}
           <Link to="/" className="flex items-center">
             <span className="text-3xl font-display font-bold text-primary italic">
-              Sign
+              Divya
             </span>
           </Link>
 

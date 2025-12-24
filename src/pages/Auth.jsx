@@ -94,7 +94,7 @@ export default function Auth() {
   return (
     <>
       <Helmet>
-        <title>{isLogin ? 'Sign In' : 'Create Account'} - Sign Fashion</title>
+        <title>{isLogin ? 'Sign In' : 'Create Account'} - Divya Fashion</title>
         <meta name="description" content={isLogin ? 'Sign in to your Sign Fashion account' : 'Create a new Sign Fashion account'} />
       </Helmet>
 
@@ -105,7 +105,7 @@ export default function Auth() {
           <div className="relative z-10 flex flex-col justify-center px-16">
             <Link to="/" className="mb-8">
               <span className="text-5xl font-display font-bold text-primary italic">
-                Sign
+                Divya
               </span>
             </Link>
             <h1 className="text-4xl font-display font-bold text-foreground mb-4">
@@ -279,10 +279,10 @@ export default function Auth() {
               </div>
             </div>
 
-            {/* First User Notice */}
+            {/* First User Notice
             <p className="text-center text-xs text-muted-foreground mt-6">
               First registered user becomes admin
-            </p>
+            </p> */}
           </div>
         </div>
       </div>

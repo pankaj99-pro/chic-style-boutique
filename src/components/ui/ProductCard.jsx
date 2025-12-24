@@ -41,16 +41,22 @@ export default function ProductCard({ product }) {
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {product.isSale && <span className="badge-sale">Sale</span>}
-            {product.isNew && (
+            {product.inStock && product.isSale && <span className="badge-sale">Sale</span>}
+            {product.inStock &&product.isNew && (
               <span className="bg-charcoal text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
                 New
               </span>
             )}
+            {!product.inStock && (
+              <span className="bg-gray-400 text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide">
+                Out Of Stock
+              </span>
+            )}
+            
           </div>
 
           {/* Discount Badge */}
-          {product.discount && (
+          {product.inStock && product.discount && (
             <div className="absolute top-3 right-3 bg-coral text-primary-foreground w-12 h-12 rounded-full flex items-center justify-center text-xs font-bold">
               -{product.discount}%
             </div>

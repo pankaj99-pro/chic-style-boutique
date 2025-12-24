@@ -5,7 +5,7 @@ import { categories } from '../../data/products';
 
 export default function CategoriesSection() {
   const categoryImages = {
-    skirts: "https://images.unsplash.com/photo-1583496661160-fb5886a0uj9a?w=200&h=200&fit=crop",
+    skirts: "https://assets.myntassets.com/dpr_1.5,q_30,w_400,c_limit,fl_progressive/assets/images/2025/NOVEMBER/5/lf4H0yps_00d2adc357e94dc5a03f5d230e2d096d.jpg",
     dresses: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=200&h=200&fit=crop",
     tops: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=200&h=200&fit=crop",
     trail: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=200&h=200&fit=crop",
