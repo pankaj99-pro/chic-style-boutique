@@ -44,6 +44,28 @@ export default function PaymentSuccess() {
         
         if (data.paymentStatus === 'paid') {
           setOrderDetails(data);
+          
+          // Save order to localStorage
+          const shippingAddress = localStorage.getItem('lastShippingAddress');
+          const newOrder = {
+            id: data.orderId,
+            date: new Date().toISOString(),
+            status: data.paymentStatus,
+            total: data.amountTotal,
+            currency: data.currency,
+            items: data.items.map((item: any) => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.amount / item.quantity
+            })),
+            shippingAddress: shippingAddress ? JSON.parse(shippingAddress) : null
+          };
+          
+          const existingOrders = JSON.parse(localStorage.getItem('orderHistory') || '[]');
+          const orderExists = existingOrders.some((o: any) => o.id === newOrder.id);
+          if (!orderExists) {
+            localStorage.setItem('orderHistory', JSON.stringify([newOrder, ...existingOrders]));
+          }
         } else {
           setError('Payment was not completed');
         }
