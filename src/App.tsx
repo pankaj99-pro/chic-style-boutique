@@ -16,9 +16,9 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Wishlist from "./pages/Wishlist";
 import Orders from "./pages/Orders";
 import Auth from "./pages/Auth";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminProducts from "./pages/admin/Products";
-import AdminProductEdit from "./pages/admin/ProductEdit";
+import AdminDashboard from "./pages/admin/Dashboard.jsx";
+import AdminProducts from "./pages/admin/Products.jsx";
+import AdminProductEdit from "./pages/admin/ProductEdit.jsx";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
