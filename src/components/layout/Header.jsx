@@ -16,8 +16,7 @@ export default function Header() {
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Products', path: '/products' },
-    { name: 'Categories', path: '/products', hasDropdown: true },
-    { name: 'Pages', path: '#', hasDropdown: true },
+    { name: 'Orders', path: '/orders' },
   ];
 
   return (

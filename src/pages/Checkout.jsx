@@ -224,6 +224,15 @@ export default function Checkout() {
       if (error) throw error;
 
       if (data?.url) {
+        // Save shipping address for order history
+        localStorage.setItem('lastShippingAddress', JSON.stringify({
+          fullName: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
+          address: shippingAddress.address,
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          zipCode: shippingAddress.zipCode,
+          country: shippingAddress.country
+        }));
         // Clear cart before redirecting
         clearCart();
         // Redirect to Stripe Checkout
