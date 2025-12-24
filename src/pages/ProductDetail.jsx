@@ -1,27 +1,27 @@
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
-import { Heart, Minus, Plus, ShoppingBag, ChevronLeft } from 'lucide-react';
-import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
-import ProductCard from '../components/ui/ProductCard';
-import { products } from '../data/products';
-import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
-import { useToast } from '../hooks/use-toast';
+import React, { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { Heart, Minus, Plus, ShoppingBag, ChevronLeft } from "lucide-react";
+import Header from "../components/layout/Header";
+import Footer from "../components/layout/Footer";
+import ProductCard from "../components/ui/ProductCard";
+import { products } from "../data/products";
+import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
+import { useToast } from "../hooks/use-toast";
 
-const sizes = ['XS', 'S', 'M', 'L', 'XL'];
+const sizes = ["XS", "S", "M", "L", "XL"];
 
 export default function ProductDetail() {
   const { id } = useParams();
   const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState('M');
+  const [selectedSize, setSelectedSize] = useState("M");
   const { addItem: addToCart } = useCart();
   const { toggleItem, isInWishlist } = useWishlist();
   const { toast } = useToast();
 
-  const product = products.find(p => p.id === id);
-  const relatedProducts = products.filter(p => p.id !== id).slice(0, 4);
+  const product = products.find((p) => p.id === id);
+  const relatedProducts = products.filter((p) => p.id !== id).slice(0, 4);
 
   if (!product) {
     return (
@@ -29,9 +29,7 @@ export default function ProductDetail() {
         <Header />
         <main className="min-h-screen flex items-center justify-center bg-background">
           <div className="text-center">
-            <h1 className="text-2xl font-display font-bold text-foreground mb-4">
-              Product Not Found
-            </h1>
+            <h1 className="text-2xl font-display font-bold text-foreground mb-4">Product Not Found</h1>
             <Link to="/products" className="btn-primary">
               Browse Products
             </Link>
@@ -56,7 +54,7 @@ export default function ProductDetail() {
     toggleItem(product);
     toast({
       title: inWishlist ? "Removed from wishlist" : "Added to wishlist!",
-      description: `${product.name} has been ${inWishlist ? 'removed from' : 'added to'} your wishlist.`,
+      description: `${product.name} has been ${inWishlist ? "removed from" : "added to"} your wishlist.`,
     });
   };
 
@@ -85,16 +83,10 @@ export default function ProductDetail() {
             {/* Product Image */}
             <div className="animate-fade-in-up">
               <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-secondary shadow-card">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-                
+                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+
                 {/* Badges */}
-                {product.isSale && (
-                  <span className="absolute top-4 left-4 badge-sale">Sale</span>
-                )}
+                {product.isSale && <span className="absolute top-4 left-4 badge-sale">Sale</span>}
                 {product.discount && (
                   <span className="absolute top-4 right-4 bg-coral text-primary-foreground w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold">
                     -{product.discount}%
@@ -105,9 +97,7 @@ export default function ProductDetail() {
 
             {/* Product Info */}
             <div className="animate-fade-in-up delay-100">
-              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-                {product.name}
-              </h1>
+              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">{product.name}</h1>
 
               {/* Price */}
               <div className="flex items-center gap-4 mb-6">
@@ -116,15 +106,11 @@ export default function ProductDetail() {
                     ${product.originalPrice.toFixed(2)}
                   </span>
                 )}
-                <span className="text-3xl font-bold text-primary">
-                  ${product.price.toFixed(2)}
-                </span>
+                <span className="text-3xl font-bold text-primary">${product.price.toFixed(2)}</span>
               </div>
 
               {/* Description */}
-              <p className="text-muted-foreground mb-8 leading-relaxed">
-                {product.description}
-              </p>
+              <p className="text-muted-foreground mb-8 leading-relaxed">{product.description}</p>
 
               {/* Size Selection */}
               <div className="mb-8">
@@ -136,8 +122,8 @@ export default function ProductDetail() {
                       onClick={() => setSelectedSize(size)}
                       className={`w-12 h-12 rounded-lg font-medium transition-all duration-200 ${
                         selectedSize === size
-                          ? 'bg-primary text-primary-foreground shadow-glow'
-                          : 'bg-card text-foreground border border-border hover:border-primary'
+                          ? "bg-primary text-primary-foreground shadow-glow"
+                          : "bg-card text-foreground border border-border hover:border-primary"
                       }`}
                     >
                       {size}
@@ -157,9 +143,7 @@ export default function ProductDetail() {
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-12 text-center font-medium text-foreground">
-                      {quantity}
-                    </span>
+                    <span className="w-12 text-center font-medium text-foreground">{quantity}</span>
                     <button
                       onClick={() => setQuantity(quantity + 1)}
                       className="w-12 h-12 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -172,33 +156,26 @@ export default function ProductDetail() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-4">
-                {product.inStock === false ? (
-                  <button
-                    disabled
-                    className="flex-1 btn-primary flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"
-                  >
-                    <ShoppingBag className="w-5 h-5" />
-                    Out of Stock
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleAddToCart}
-                    className="flex-1 btn-primary flex items-center justify-center gap-3"
-                  >
-                    <ShoppingBag className="w-5 h-5" />
-                    Add to Cart
-                  </button>
-                )}
-                
+                <button
+                  onClick={product.inStock ? handleAddToCart : undefined}
+                  disabled={!product.inStock}
+                  className={`flex-1 btn-primary flex items-center justify-center gap-3
+      ${!product.inStock ? "opacity-50 cursor-not-allowed" : ""}
+    `}
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                  {product.inStock ? "Add to Cart" : "Out Of Stock"}
+                </button>
+
                 <button
                   onClick={handleToggleWishlist}
                   className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
                     inWishlist
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-card text-foreground border border-border hover:border-primary'
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-foreground border border-border hover:border-primary"
                   }`}
                 >
-                  <Heart className={`w-6 h-6 ${inWishlist ? 'fill-current' : ''}`} />
+                  <Heart className={`w-6 h-6 ${inWishlist ? "fill-current" : ""}`} />
                 </button>
               </div>
 
@@ -211,9 +188,7 @@ export default function ProductDetail() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Availability:</span>
-                    <span className={`ml-2 ${product.inStock === false ? 'text-destructive' : 'text-green-600'}`}>
-                      {product.inStock === false ? 'Out of Stock' : 'In Stock'}
-                    </span>
+                    <span className="ml-2 text-green-600">{product.inStock ? "In Stock" : "Out Of Stock"}</span>
                   </div>
                 </div>
               </div>
@@ -225,11 +200,7 @@ export default function ProductDetail() {
             <h2 className="section-title mb-8">You May Also Like</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((product, index) => (
-                <div
-                  key={product.id}
-                  className="animate-fade-in-up"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
+                <div key={product.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
                   <ProductCard product={product} />
                 </div>
               ))}
