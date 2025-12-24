@@ -65,7 +65,7 @@ export default function Cart() {
   return (
     <>
       <Helmet>
-        <title>Your Cart ({items.length}) - Sign Fashion</title>
+        <title>{`Your Cart (${items.length}) - Sign Fashion`}</title>
       </Helmet>
 
       <Header />
