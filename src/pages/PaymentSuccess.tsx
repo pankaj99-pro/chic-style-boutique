@@ -11,13 +11,6 @@ interface OrderDetails {
   paymentStatus: string;
   customerEmail: string;
   customerName: string;
-  shippingAddress: {
-    line1: string;
-    city: string;
-    state: string;
-    postal_code: string;
-    country: string;
-  };
   amountTotal: number;
   currency: string;
   items: Array<{
@@ -168,26 +161,16 @@ export default function PaymentSuccess() {
               </div>
             </div>
 
-            {/* Shipping Info */}
-            {orderDetails.shippingAddress && (
-              <div className="bg-card rounded-2xl p-6 shadow-card mb-8 text-left">
-                <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-primary" />
-                  Shipping Details
-                </h3>
-                <div className="text-sm text-muted-foreground">
-                  <p className="font-medium text-foreground">{orderDetails.customerName}</p>
-                  <p>{orderDetails.shippingAddress.line1}</p>
-                  <p>
-                    {orderDetails.shippingAddress.city}, {orderDetails.shippingAddress.state} {orderDetails.shippingAddress.postal_code}
-                  </p>
-                  <p>{orderDetails.shippingAddress.country}</p>
-                </div>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Estimated delivery: 5-7 business days
-                </p>
-              </div>
-            )}
+            {/* Delivery Estimate */}
+            <div className="bg-card rounded-2xl p-6 shadow-card mb-8 text-left">
+              <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+                <Truck className="w-5 h-5 text-primary" />
+                Delivery Information
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Your order will be shipped to the address you provided. Estimated delivery: 5-7 business days.
+              </p>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/products" className="btn-primary">

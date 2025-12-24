@@ -8,7 +8,8 @@ import {
   Truck, 
   Package,
   ShoppingBag,
-  Loader2
+  Loader2,
+  MapPin
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -23,6 +24,19 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  
+  // Shipping address state
+  const [shippingAddress, setShippingAddress] = useState({
+    firstName: '',
+    lastName: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'US',
+    phone: ''
+  });
+  const [addressErrors, setAddressErrors] = useState({});
 
   const shippingCost = totalPrice > 100 ? 0 : 10;
   const tax = totalPrice * 0.08;
@@ -57,8 +71,41 @@ export default function Checkout() {
     );
   }
 
+  const handleAddressChange = (e) => {
+    const { name, value } = e.target;
+    setShippingAddress(prev => ({ ...prev, [name]: value }));
+    // Clear error when user types
+    if (addressErrors[name]) {
+      setAddressErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateAddress = () => {
+    const errors = {};
+    if (!shippingAddress.firstName.trim()) errors.firstName = 'First name is required';
+    if (!shippingAddress.lastName.trim()) errors.lastName = 'Last name is required';
+    if (!shippingAddress.address.trim()) errors.address = 'Address is required';
+    if (!shippingAddress.city.trim()) errors.city = 'City is required';
+    if (!shippingAddress.state.trim()) errors.state = 'State is required';
+    if (!shippingAddress.zipCode.trim()) errors.zipCode = 'ZIP code is required';
+    if (!shippingAddress.phone.trim()) errors.phone = 'Phone number is required';
+    
+    setAddressErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleStripeCheckout = async (e) => {
     e.preventDefault();
+    
+    // Validate address
+    if (!validateAddress()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required shipping fields.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Optional email validation
     if (customerEmail && !/\S+@\S+\.\S+/.test(customerEmail)) {
@@ -74,6 +121,7 @@ export default function Checkout() {
         body: {
           items: items,
           customerEmail: customerEmail || undefined,
+          shippingInfo: shippingAddress,
         },
       });
 
@@ -98,6 +146,9 @@ export default function Checkout() {
     }
   };
 
+  const inputClasses = (fieldName) => 
+    `w-full px-4 py-3 rounded-xl border ${addressErrors[fieldName] ? 'border-destructive' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30`;
+
   return (
     <>
       <Helmet>
@@ -120,93 +171,225 @@ export default function Checkout() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Checkout Form */}
             <div className="lg:col-span-2">
-              <form onSubmit={handleStripeCheckout} className="bg-card rounded-2xl p-6 md:p-8 shadow-card animate-fade-in-up">
-                <div className="flex items-center gap-3 mb-6">
-                  <CreditCard className="w-6 h-6 text-primary" />
-                  <h2 className="font-display font-semibold text-xl text-foreground">
-                    Secure Checkout
-                  </h2>
-                </div>
+              <form onSubmit={handleStripeCheckout} className="space-y-6">
+                {/* Shipping Address Section */}
+                <div className="bg-card rounded-2xl p-6 md:p-8 shadow-card animate-fade-in-up">
+                  <div className="flex items-center gap-3 mb-6">
+                    <MapPin className="w-6 h-6 text-primary" />
+                    <h2 className="font-display font-semibold text-xl text-foreground">
+                      Shipping Address
+                    </h2>
+                  </div>
 
-                {/* Security Badge */}
-                <div className="flex items-center gap-2 mb-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <Lock className="w-4 h-4 text-green-600" />
-                  <span className="text-sm text-green-700 dark:text-green-400">
-                    Secure checkout powered by Stripe
-                  </span>
-                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={shippingAddress.firstName}
+                        onChange={handleAddressChange}
+                        className={inputClasses('firstName')}
+                        placeholder="John"
+                      />
+                      {addressErrors.firstName && <p className="text-destructive text-xs mt-1">{addressErrors.firstName}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={shippingAddress.lastName}
+                        onChange={handleAddressChange}
+                        className={inputClasses('lastName')}
+                        placeholder="Doe"
+                      />
+                      {addressErrors.lastName && <p className="text-destructive text-xs mt-1">{addressErrors.lastName}</p>}
+                    </div>
+                  </div>
 
-                {/* Optional Email */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Email Address (optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl border ${emailError ? 'border-destructive' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30`}
-                    placeholder="Enter your email for order confirmation"
-                  />
-                  {emailError && <p className="text-destructive text-xs mt-1">{emailError}</p>}
-                  <p className="text-muted-foreground text-xs mt-2">
-                    You'll enter shipping and payment details on the next page
-                  </p>
-                </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Street Address *
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={shippingAddress.address}
+                      onChange={handleAddressChange}
+                      className={inputClasses('address')}
+                      placeholder="123 Main St, Apt 4B"
+                    />
+                    {addressErrors.address && <p className="text-destructive text-xs mt-1">{addressErrors.address}</p>}
+                  </div>
 
-                {/* Order Items Preview */}
-                <div className="mb-6">
-                  <h3 className="font-medium text-foreground mb-4">Order Items</h3>
-                  <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {items.map((item) => (
-                      <div key={`${item.product.id}-${item.size}`} className="flex gap-3 p-3 bg-secondary/50 rounded-lg">
-                        <img
-                          src={item.product.image}
-                          alt={item.product.name}
-                          className="w-12 h-14 object-cover rounded"
-                        />
-                        <div className="flex-1">
-                          <p className="font-medium text-foreground text-sm">{item.product.name}</p>
-                          <p className="text-muted-foreground text-xs">Size: {item.size} × {item.quantity}</p>
-                        </div>
-                        <p className="font-medium text-primary text-sm">
-                          ${(item.product.price * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        City *
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={shippingAddress.city}
+                        onChange={handleAddressChange}
+                        className={inputClasses('city')}
+                        placeholder="New York"
+                      />
+                      {addressErrors.city && <p className="text-destructive text-xs mt-1">{addressErrors.city}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        State *
+                      </label>
+                      <input
+                        type="text"
+                        name="state"
+                        value={shippingAddress.state}
+                        onChange={handleAddressChange}
+                        className={inputClasses('state')}
+                        placeholder="NY"
+                      />
+                      {addressErrors.state && <p className="text-destructive text-xs mt-1">{addressErrors.state}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        ZIP Code *
+                      </label>
+                      <input
+                        type="text"
+                        name="zipCode"
+                        value={shippingAddress.zipCode}
+                        onChange={handleAddressChange}
+                        className={inputClasses('zipCode')}
+                        placeholder="10001"
+                      />
+                      {addressErrors.zipCode && <p className="text-destructive text-xs mt-1">{addressErrors.zipCode}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Country
+                      </label>
+                      <select
+                        name="country"
+                        value={shippingAddress.country}
+                        onChange={handleAddressChange}
+                        className={inputClasses('country')}
+                      >
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="AU">Australia</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Phone Number *
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={shippingAddress.phone}
+                      onChange={handleAddressChange}
+                      className={inputClasses('phone')}
+                      placeholder="+1 (555) 123-4567"
+                    />
+                    {addressErrors.phone && <p className="text-destructive text-xs mt-1">{addressErrors.phone}</p>}
                   </div>
                 </div>
 
-                {/* Checkout Button */}
-                <button 
-                  type="submit" 
-                  disabled={isProcessing}
-                  className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Redirecting to Stripe...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      Proceed to Secure Payment
-                    </>
-                  )}
-                </button>
+                {/* Payment Section */}
+                <div className="bg-card rounded-2xl p-6 md:p-8 shadow-card animate-fade-in-up">
+                  <div className="flex items-center gap-3 mb-6">
+                    <CreditCard className="w-6 h-6 text-primary" />
+                    <h2 className="font-display font-semibold text-xl text-foreground">
+                      Payment Information
+                    </h2>
+                  </div>
 
-                {/* Payment Methods */}
-                <div className="flex justify-center gap-4 mt-6 opacity-60">
-                  <img src="https://cdn-icons-png.flaticon.com/128/349/349221.png" alt="Visa" className="h-6" />
-                  <img src="https://cdn-icons-png.flaticon.com/128/349/349228.png" alt="MasterCard" className="h-6" />
-                  <img src="https://cdn-icons-png.flaticon.com/128/196/196566.png" alt="Amex" className="h-6" />
-                  <img src="https://cdn-icons-png.flaticon.com/128/349/349230.png" alt="PayPal" className="h-6" />
+                  {/* Security Badge */}
+                  <div className="flex items-center gap-2 mb-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <Lock className="w-4 h-4 text-green-600" />
+                    <span className="text-sm text-green-700 dark:text-green-400">
+                      Secure checkout powered by Stripe
+                    </span>
+                  </div>
+
+                  {/* Optional Email */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-foreground mb-2">
+                      Email Address (for order confirmation)
+                    </label>
+                    <input
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-xl border ${emailError ? 'border-destructive' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                      placeholder="Enter your email for order confirmation"
+                    />
+                    {emailError && <p className="text-destructive text-xs mt-1">{emailError}</p>}
+                  </div>
+
+                  {/* Order Items Preview */}
+                  <div className="mb-6">
+                    <h3 className="font-medium text-foreground mb-4">Order Items</h3>
+                    <div className="space-y-3 max-h-48 overflow-y-auto">
+                      {items.map((item) => (
+                        <div key={`${item.product.id}-${item.size}`} className="flex gap-3 p-3 bg-secondary/50 rounded-lg">
+                          <img
+                            src={item.product.image}
+                            alt={item.product.name}
+                            className="w-12 h-14 object-cover rounded"
+                          />
+                          <div className="flex-1">
+                            <p className="font-medium text-foreground text-sm">{item.product.name}</p>
+                            <p className="text-muted-foreground text-xs">Size: {item.size} × {item.quantity}</p>
+                          </div>
+                          <p className="font-medium text-primary text-sm">
+                            ${(item.product.price * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Checkout Button */}
+                  <button 
+                    type="submit" 
+                    disabled={isProcessing}
+                    className="w-full btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Redirecting to Payment...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        Proceed to Payment
+                      </>
+                    )}
+                  </button>
+
+                  {/* Payment Methods */}
+                  <div className="flex justify-center gap-4 mt-6 opacity-60">
+                    <img src="https://cdn-icons-png.flaticon.com/128/349/349221.png" alt="Visa" className="h-6" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/349/349228.png" alt="MasterCard" className="h-6" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/196/196566.png" alt="Amex" className="h-6" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/349/349230.png" alt="PayPal" className="h-6" />
+                  </div>
+
+                  <p className="text-center text-xs text-muted-foreground mt-4">
+                    You'll enter card details on Stripe's secure payment page
+                  </p>
                 </div>
-
-                <p className="text-center text-xs text-muted-foreground mt-4">
-                  By proceeding, you'll be redirected to Stripe's secure checkout page
-                </p>
               </form>
             </div>
 
