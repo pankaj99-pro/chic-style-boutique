@@ -5,6 +5,9 @@ import { CheckCircle, Package, Truck, ArrowRight, Loader2 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { supabase } from '../integrations/supabase/client';
+import { useAuth } from '../context/AuthContext';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface OrderDetails {
   orderId: string;
@@ -26,6 +29,7 @@ export default function PaymentSuccess() {
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -45,26 +49,51 @@ export default function PaymentSuccess() {
         if (data.paymentStatus === 'paid') {
           setOrderDetails(data);
           
-          // Save order to localStorage
-          const shippingAddress = localStorage.getItem('lastShippingAddress');
-          const newOrder = {
-            id: data.orderId,
-            date: new Date().toISOString(),
-            status: data.paymentStatus,
-            total: data.amountTotal,
-            currency: data.currency,
-            items: data.items.map((item: any) => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: item.amount / item.quantity
-            })),
-            shippingAddress: shippingAddress ? JSON.parse(shippingAddress) : null
-          };
+          // Get saved shipping address from localStorage
+          const shippingAddressStr = localStorage.getItem('lastShippingAddress');
+          const shippingAddress = shippingAddressStr ? JSON.parse(shippingAddressStr) : null;
           
-          const existingOrders = JSON.parse(localStorage.getItem('orderHistory') || '[]');
-          const orderExists = existingOrders.some((o: any) => o.id === newOrder.id);
-          if (!orderExists) {
-            localStorage.setItem('orderHistory', JSON.stringify([newOrder, ...existingOrders]));
+          // Create order in MongoDB backend if user is authenticated
+          if (isAuthenticated && token) {
+            try {
+              const orderData = {
+                items: data.items.map((item: any) => ({
+                  productId: item.productId || 'stripe_item',
+                  name: item.name,
+                  price: item.amount / item.quantity,
+                  quantity: item.quantity,
+                  size: item.size || 'N/A',
+                  image: item.image || ''
+                })),
+                shippingAddress: shippingAddress || {
+                  fullName: data.customerName || 'N/A',
+                  address: 'N/A',
+                  city: 'N/A',
+                  state: 'N/A',
+                  zipCode: 'N/A',
+                  country: 'IN',
+                  phone: 'N/A'
+                },
+                paymentMethod: 'stripe',
+                paymentStatus: 'paid',
+                subtotal: data.amountTotal,
+                shippingCost: 0,
+                tax: 0,
+                total: data.amountTotal,
+                stripeSessionId: sessionId
+              };
+
+              await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(orderData)
+              });
+            } catch (orderError) {
+              console.error('Error saving order to backend:', orderError);
+            }
           }
         } else {
           setError('Payment was not completed');
@@ -78,7 +107,7 @@ export default function PaymentSuccess() {
     };
 
     verifyPayment();
-  }, [sessionId]);
+  }, [sessionId, isAuthenticated, token]);
 
   if (loading) {
     return (
@@ -167,7 +196,7 @@ export default function PaymentSuccess() {
                       {item.name} × {item.quantity}
                     </span>
                     <span className="text-foreground font-medium">
-                      ${item.amount.toFixed(2)}
+                      ₹{item.amount.toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -177,7 +206,7 @@ export default function PaymentSuccess() {
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total Paid</span>
                   <span className="text-primary">
-                    ${orderDetails.amountTotal.toFixed(2)} {orderDetails.currency}
+                    ₹{orderDetails.amountTotal.toFixed(2)}
                   </span>
                 </div>
               </div>
