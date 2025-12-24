@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ShoppingBag } from 'lucide-react';
-import { flashSaleProducts } from '../../data/products';
+import { ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
+import { useFlashSaleProducts } from '../../hooks/useProducts';
 import { useCart } from '../../context/CartContext';
 
 export default function FlashSaleSection() {
@@ -11,6 +11,7 @@ export default function FlashSaleSection() {
     seconds: 30,
   });
   const { addItem: addToCart } = useCart();
+  const { products: flashSaleProducts, loading, error } = useFlashSaleProducts();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -112,48 +113,62 @@ export default function FlashSaleSection() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {flashSaleProducts.map((product, index) => (
-            <div
-              key={product.id}
-              className="card-product group animate-fade-in-up"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="relative aspect-[3/4] overflow-hidden">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                
-                {/* Discount Badge */}
-                <div className="absolute top-3 right-3 bg-coral text-primary-foreground w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold">
-                  -{product.discount}%
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Unable to load flash sale products
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {flashSaleProducts.map((product, index) => (
+              <div
+                key={product._id || product.id}
+                className="card-product group animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="relative aspect-[3/4] overflow-hidden">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  
+                  {/* Discount Badge */}
+                  {product.discount && (
+                    <div className="absolute top-3 right-3 bg-coral text-primary-foreground w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold">
+                      -{product.discount}%
+                    </div>
+                  )}
+
+                  {/* Quick Add */}
+                  <button
+                    onClick={() => addToCart({ ...product, id: product._id || product.id })}
+                    className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:shadow-glow"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                  </button>
                 </div>
 
-                {/* Quick Add */}
-                <button
-                  onClick={() => addToCart(product)}
-                  className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:shadow-glow"
-                >
-                  <ShoppingBag className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-4">
-                <h4 className="font-medium text-foreground mb-2">{product.name}</h4>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground line-through text-sm">
-                    ${product.originalPrice.toFixed(2)}
-                  </span>
-                  <span className="text-primary font-semibold">
-                    ${product.price.toFixed(2)}
-                  </span>
+                <div className="p-4">
+                  <h4 className="font-medium text-foreground mb-2">{product.name}</h4>
+                  <div className="flex items-center gap-2">
+                    {product.originalPrice && (
+                      <span className="text-muted-foreground line-through text-sm">
+                        ${product.originalPrice.toFixed(2)}
+                      </span>
+                    )}
+                    <span className="text-primary font-semibold">
+                      ${product.price.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
