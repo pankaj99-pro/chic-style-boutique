@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Heart, ShoppingBag, Menu, X, ChevronDown } from 'lucide-react';
+import { Search, Heart, ShoppingBag, Menu, X, ChevronDown, User, LogOut, Settings } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
   const { totalItems: cartItems } = useCart();
   const { totalItems: wishlistItems } = useWishlist();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
 
   const isActive = (path) => location.pathname === path;
 
@@ -28,6 +31,12 @@ export default function Header() {
       setSearchQuery('');
       setIsSearchOpen(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsUserMenuOpen(false);
+    navigate('/');
   };
 
   return (
@@ -57,6 +66,19 @@ export default function Header() {
                 {link.hasDropdown && <ChevronDown className="w-4 h-4" />}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-1 text-sm font-medium transition-colors duration-200 ${
+                  location.pathname.startsWith('/admin')
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-primary'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Icons */}
@@ -89,6 +111,61 @@ export default function Header() {
                 </span>
               )}
             </Link>
+
+            {/* User Menu */}
+            <div className="relative">
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="icon-button"
+                    aria-label="User menu"
+                  >
+                    <User className="w-5 h-5" />
+                  </button>
+                  
+                  {isUserMenuOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsUserMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 top-12 z-50 w-56 bg-card rounded-xl shadow-card border border-border py-2 animate-fade-in-up">
+                        <div className="px-4 py-2 border-b border-border">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {user?.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {user?.role}
+                          </p>
+                        </div>
+                        {isAdmin && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                          >
+                            <Settings className="w-4 h-4" />
+                            Admin Panel
+                          </Link>
+                        )}
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-destructive hover:bg-secondary transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <Link to="/auth" className="icon-button" aria-label="Sign in">
+                  <User className="w-5 h-5" />
+                </Link>
+              )}
+            </div>
 
             {/* Mobile Menu Button */}
             <button
@@ -142,6 +219,48 @@ export default function Header() {
                 {link.name}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setIsMenuOpen(false)}
+                className={`text-base font-medium py-2 flex items-center gap-2 ${
+                  location.pathname.startsWith('/admin')
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                Admin Panel
+              </Link>
+            )}
+            <div className="border-t border-border pt-4 mt-2">
+              {isAuthenticated ? (
+                <>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Signed in as {user?.email}
+                  </p>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 text-destructive font-medium"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/auth"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2 text-primary font-medium"
+                >
+                  <User className="w-4 h-4" />
+                  Sign In / Sign Up
+                </Link>
+              )}
+            </div>
           </nav>
         </div>
       )}
