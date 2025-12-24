@@ -1,0 +1,71 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[VERIFY-PAYMENT] ${step}${detailsStr}`);
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    logStep("Function started");
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+
+    const { sessionId } = await req.json();
+    if (!sessionId) {
+      throw new Error("Session ID is required");
+    }
+    logStep("Verifying session", { sessionId });
+
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["line_items", "customer", "shipping_details"],
+    });
+
+    logStep("Session retrieved", { 
+      status: session.payment_status,
+      amount: session.amount_total 
+    });
+
+    const orderDetails = {
+      orderId: session.id,
+      paymentStatus: session.payment_status,
+      customerEmail: session.customer_details?.email,
+      customerName: session.customer_details?.name,
+      shippingAddress: session.shipping_details?.address,
+      amountTotal: session.amount_total ? session.amount_total / 100 : 0,
+      currency: session.currency?.toUpperCase(),
+      items: session.line_items?.data.map((item: Stripe.LineItem) => ({
+        name: item.description,
+        quantity: item.quantity,
+        amount: item.amount_total ? item.amount_total / 100 : 0,
+      })),
+    };
+
+    return new Response(JSON.stringify(orderDetails), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
