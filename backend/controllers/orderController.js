@@ -6,7 +6,7 @@ const Order = require('../models/Order');
  */
 const createOrder = async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod, subtotal, shippingCost, tax, total } = req.body;
+    const { items, shippingAddress, paymentMethod, paymentStatus, subtotal, shippingCost, tax, total, stripeSessionId } = req.body;
 
     // Validate required fields
     if (!items || items.length === 0) {
@@ -30,17 +30,31 @@ const createOrder = async (req, res) => {
       });
     }
 
+    // Check if order with this stripe session already exists
+    if (stripeSessionId) {
+      const existingOrder = await Order.findOne({ stripeSessionId });
+      if (existingOrder) {
+        return res.status(200).json({
+          success: true,
+          message: 'Order already exists',
+          data: existingOrder
+        });
+      }
+    }
+
     const order = await Order.create({
       user: req.user._id,
       items,
       shippingAddress,
       paymentMethod,
-      paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending',
-      orderStatus: paymentMethod === 'cod' ? 'confirmed' : 'pending',
+      paymentStatus: paymentStatus || (paymentMethod === 'cod' ? 'pending' : 'pending'),
+      orderStatus: paymentMethod === 'stripe' && paymentStatus === 'paid' ? 'confirmed' : (paymentMethod === 'cod' ? 'confirmed' : 'pending'),
       subtotal,
       shippingCost,
       tax,
-      total
+      total,
+      stripeSessionId,
+      currency: 'INR'
     });
 
     res.status(201).json({

@@ -91,8 +91,72 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        
+
         {/* Content */}
         <div className="container mx-auto px-4 py-6 space-y-8">
+
+          {/* Revenue Card */}
+          {orderStats?.totalRevenue > 0 && (
+            <div className="bg-gradient-to-r from-green-500 to-green-400/80 rounded-2xl p-6 text-primary-foreground">
+              <p className="text-sm opacity-80">Total Revenue</p>
+              <p className="text-3xl font-bold">₹{orderStats.totalRevenue.toFixed(2)}</p>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card">
+            <h2 className="text-lg sm:text-xl font-display font-semibold text-foreground mb-5">
+              Quick Actions
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Link
+                to="/admin/products"
+                className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
+              >
+                <Package className="w-9 h-9 text-primary flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Manage Products
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    View, edit, and delete products
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/products/new"
+                className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
+              >
+                <Plus className="w-9 h-9 text-primary flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Add New Product
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Create a new product listing
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/orders"
+                className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
+              >
+                <ShoppingBag className="w-9 h-9 text-primary flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    Manage Orders
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    View and process customer orders
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </div>
           {/* Product Stats Grid */}
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Product Statistics</h2>
@@ -189,67 +253,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Revenue Card */}
-          {orderStats?.totalRevenue > 0 && (
-            <div className="bg-gradient-to-r from-primary to-primary/80 rounded-2xl p-6 text-primary-foreground">
-              <p className="text-sm opacity-80">Total Revenue</p>
-              <p className="text-3xl font-bold">₹{orderStats.totalRevenue.toFixed(2)}</p>
-            </div>
-          )}
-
-          {/* Quick Actions */}
-          <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-card">
-            <h2 className="text-lg sm:text-xl font-display font-semibold text-foreground mb-5">
-              Quick Actions
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Link
-                to="/admin/products"
-                className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
-              >
-                <Package className="w-9 h-9 text-primary flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-foreground">
-                    Manage Products
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    View, edit, and delete products
-                  </p>
-                </div>
-              </Link>
-
-              <Link
-                to="/admin/products/new"
-                className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
-              >
-                <Plus className="w-9 h-9 text-primary flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-foreground">
-                    Add New Product
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Create a new product listing
-                  </p>
-                </div>
-              </Link>
-
-              <Link
-                to="/admin/orders"
-                className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
-              >
-                <ShoppingBag className="w-9 h-9 text-primary flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-foreground">
-                    Manage Orders
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    View and process customer orders
-                  </p>
-                </div>
-              </Link>
-            </div>
-          </div>
+          
         </div>
       </div>
     </>

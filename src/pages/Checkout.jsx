@@ -23,11 +23,11 @@ import { useToast } from '../hooks/use-toast';
 import { supabase } from '../integrations/supabase/client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const SAVED_ADDRESSES_KEY = 'signfashion_saved_addresses';
+const SAVED_ADDRESSES_KEY = 'divyafashion_saved_addresses';
 
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated, token, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -50,7 +50,7 @@ export default function Checkout() {
     city: '',
     state: '',
     zipCode: '',
-    country: 'US',
+    country: 'IND',
     phone: ''
   });
   const [addressErrors, setAddressErrors] = useState({});
@@ -94,7 +94,7 @@ export default function Checkout() {
       city: '',
       state: '',
       zipCode: '',
-      country: 'US',
+      country: 'IN',
       phone: ''
     });
     setShowAddressForm(true);
@@ -659,7 +659,7 @@ export default function Checkout() {
                   </div>
 
                   {/* COD Notice */}
-                  {paymentMethod === 'cod' && (
+                  {paymentMethod === 'cod' && ( !user &&
                     <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                       <p className="text-sm text-amber-700 dark:text-amber-400">
                         ⚡ Login required for COD orders. You'll pay ₹{grandTotal.toFixed(2)} when your order arrives.
@@ -670,11 +670,11 @@ export default function Checkout() {
                     {/* Stripe: Login notice and Optional Email */}
                   {paymentMethod === 'stripe' && (
                     <>
-                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      {!user && <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <p className="text-sm text-blue-700 dark:text-blue-400">
                           🔐 Login required for online payment
                         </p>
-                      </div>
+                      </div>}
                       <div className="flex items-center gap-2 my-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <Lock className="w-4 h-4 text-green-600" />
                         <span className="text-sm text-green-700 dark:text-green-400">
