@@ -19,7 +19,7 @@ export default function Products() {
   const [sortBy, setSortBy] = useState('default');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [selectedPriceRanges, setSelectedPriceRanges] = useState([]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState(null);
 
   const selectedCategory = searchParams.get('category') || 'all';
 
@@ -50,11 +50,9 @@ export default function Products() {
     }
 
     // Filter by price range
-    if (selectedPriceRanges.length > 0) {
+    if (selectedPriceRange) {
       filtered = filtered.filter(p => 
-        selectedPriceRanges.some(range => 
-          p.price >= range.min && p.price < range.max
-        )
+        p.price >= selectedPriceRange.min && p.price < selectedPriceRange.max
       );
     }
 
@@ -74,7 +72,7 @@ export default function Products() {
     }
 
     return filtered;
-  }, [selectedCategory, sortBy, searchQuery, selectedPriceRanges]);
+  }, [selectedCategory, sortBy, searchQuery, selectedPriceRange]);
 
   const handleCategoryChange = (category) => {
     if (category === 'all') {
@@ -86,13 +84,11 @@ export default function Products() {
   };
 
   const handlePriceRangeChange = (range) => {
-    setSelectedPriceRanges(prev => {
-      const exists = prev.find(r => r.label === range.label);
-      if (exists) {
-        return prev.filter(r => r.label !== range.label);
-      }
-      return [...prev, range];
-    });
+    if (selectedPriceRange?.label === range.label) {
+      setSelectedPriceRange(null);
+    } else {
+      setSelectedPriceRange(range);
+    }
   };
 
   return (
@@ -172,17 +168,17 @@ export default function Products() {
                   </div>
                 </div>
 
-                {/* Price Range */}
                 <div>
                   <h3 className="font-medium text-foreground mb-3">Price Range</h3>
                   <div className="space-y-2">
                     {priceRanges.map((range) => (
                       <label key={range.label} className="flex items-center gap-2 text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
                         <input 
-                          type="checkbox" 
-                          checked={selectedPriceRanges.some(r => r.label === range.label)}
+                          type="radio" 
+                          name="priceRange"
+                          checked={selectedPriceRange?.label === range.label}
                           onChange={() => handlePriceRangeChange(range)}
-                          className="rounded text-primary focus:ring-primary" 
+                          className="text-primary focus:ring-primary" 
                         />
                         {range.label}
                       </label>
@@ -190,12 +186,11 @@ export default function Products() {
                   </div>
                 </div>
 
-                {/* Clear Filters */}
-                {(searchQuery || selectedPriceRanges.length > 0 || selectedCategory !== 'all') && (
+                {(searchQuery || selectedPriceRange || selectedCategory !== 'all') && (
                   <button
                     onClick={() => {
                       setSearchQuery('');
-                      setSelectedPriceRanges([]);
+                      setSelectedPriceRange(null);
                       handleCategoryChange('all');
                     }}
                     className="mt-6 w-full py-2 px-4 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
@@ -276,7 +271,7 @@ export default function Products() {
                   <button
                     onClick={() => {
                       setSearchQuery('');
-                      setSelectedPriceRanges([]);
+                      setSelectedPriceRange(null);
                       handleCategoryChange('all');
                     }}
                     className="mt-4 text-primary hover:underline"
