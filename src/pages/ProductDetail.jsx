@@ -172,13 +172,23 @@ export default function ProductDetail() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={handleAddToCart}
-                  className="flex-1 btn-primary flex items-center justify-center gap-3"
-                >
-                  <ShoppingBag className="w-5 h-5" />
-                  Add to Cart
-                </button>
+                {product.inStock === false ? (
+                  <button
+                    disabled
+                    className="flex-1 btn-primary flex items-center justify-center gap-3 opacity-50 cursor-not-allowed"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    Out of Stock
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleAddToCart}
+                    className="flex-1 btn-primary flex items-center justify-center gap-3"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    Add to Cart
+                  </button>
+                )}
                 
                 <button
                   onClick={handleToggleWishlist}
@@ -201,7 +211,9 @@ export default function ProductDetail() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Availability:</span>
-                    <span className="ml-2 text-green-600">In Stock</span>
+                    <span className={`ml-2 ${product.inStock === false ? 'text-destructive' : 'text-green-600'}`}>
+                      {product.inStock === false ? 'Out of Stock' : 'In Stock'}
+                    </span>
                   </div>
                 </div>
               </div>
