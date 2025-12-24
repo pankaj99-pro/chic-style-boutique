@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { 
@@ -9,13 +9,18 @@ import {
   Package,
   ShoppingBag,
   Loader2,
-  MapPin
+  MapPin,
+  Plus,
+  Check,
+  Trash2
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '../integrations/supabase/client';
+
+const SAVED_ADDRESSES_KEY = 'signfashion_saved_addresses';
 
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
@@ -24,6 +29,12 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  
+  // Saved addresses state
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [showAddressForm, setShowAddressForm] = useState(true);
+  const [saveThisAddress, setSaveThisAddress] = useState(false);
   
   // Shipping address state
   const [shippingAddress, setShippingAddress] = useState({
@@ -37,6 +48,86 @@ export default function Checkout() {
     phone: ''
   });
   const [addressErrors, setAddressErrors] = useState({});
+
+  // Load saved addresses from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(SAVED_ADDRESSES_KEY);
+    if (stored) {
+      const addresses = JSON.parse(stored);
+      setSavedAddresses(addresses);
+      if (addresses.length > 0) {
+        setShowAddressForm(false);
+      }
+    }
+  }, []);
+
+  // Select a saved address
+  const handleSelectAddress = (address) => {
+    setSelectedAddressId(address.id);
+    setShippingAddress({
+      firstName: address.firstName,
+      lastName: address.lastName,
+      address: address.address,
+      city: address.city,
+      state: address.state,
+      zipCode: address.zipCode,
+      country: address.country,
+      phone: address.phone
+    });
+    setShowAddressForm(false);
+    setAddressErrors({});
+  };
+
+  // Add new address mode
+  const handleAddNewAddress = () => {
+    setSelectedAddressId(null);
+    setShippingAddress({
+      firstName: '',
+      lastName: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'US',
+      phone: ''
+    });
+    setShowAddressForm(true);
+    setSaveThisAddress(false);
+  };
+
+  // Save current address to localStorage
+  const saveAddressToStorage = () => {
+    const newAddress = {
+      id: Date.now().toString(),
+      ...shippingAddress
+    };
+    const updated = [...savedAddresses, newAddress];
+    localStorage.setItem(SAVED_ADDRESSES_KEY, JSON.stringify(updated));
+    setSavedAddresses(updated);
+    setSelectedAddressId(newAddress.id);
+    toast({
+      title: "Address Saved",
+      description: "Your address has been saved for future orders.",
+    });
+  };
+
+  // Delete saved address
+  const handleDeleteAddress = (addressId, e) => {
+    e.stopPropagation();
+    const updated = savedAddresses.filter(a => a.id !== addressId);
+    localStorage.setItem(SAVED_ADDRESSES_KEY, JSON.stringify(updated));
+    setSavedAddresses(updated);
+    if (selectedAddressId === addressId) {
+      setSelectedAddressId(null);
+      if (updated.length === 0) {
+        setShowAddressForm(true);
+      }
+    }
+    toast({
+      title: "Address Removed",
+      description: "The address has been deleted.",
+    });
+  };
 
   const shippingCost = totalPrice > 100 ? 0 : 10;
   const tax = totalPrice * 0.08;
@@ -114,6 +205,11 @@ export default function Checkout() {
     }
     setEmailError('');
     
+    // Save address if checkbox is checked
+    if (saveThisAddress && showAddressForm) {
+      saveAddressToStorage();
+    }
+    
     setIsProcessing(true);
 
     try {
@@ -174,134 +270,211 @@ export default function Checkout() {
               <form onSubmit={handleStripeCheckout} className="space-y-6">
                 {/* Shipping Address Section */}
                 <div className="bg-card rounded-2xl p-6 md:p-8 shadow-card animate-fade-in-up">
-                  <div className="flex items-center gap-3 mb-6">
-                    <MapPin className="w-6 h-6 text-primary" />
-                    <h2 className="font-display font-semibold text-xl text-foreground">
-                      Shipping Address
-                    </h2>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        First Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={shippingAddress.firstName}
-                        onChange={handleAddressChange}
-                        className={inputClasses('firstName')}
-                        placeholder="John"
-                      />
-                      {addressErrors.firstName && <p className="text-destructive text-xs mt-1">{addressErrors.firstName}</p>}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="w-6 h-6 text-primary" />
+                      <h2 className="font-display font-semibold text-xl text-foreground">
+                        Shipping Address
+                      </h2>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Last Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={shippingAddress.lastName}
-                        onChange={handleAddressChange}
-                        className={inputClasses('lastName')}
-                        placeholder="Doe"
-                      />
-                      {addressErrors.lastName && <p className="text-destructive text-xs mt-1">{addressErrors.lastName}</p>}
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Street Address *
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={shippingAddress.address}
-                      onChange={handleAddressChange}
-                      className={inputClasses('address')}
-                      placeholder="123 Main St, Apt 4B"
-                    />
-                    {addressErrors.address && <p className="text-destructive text-xs mt-1">{addressErrors.address}</p>}
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <div className="col-span-2 md:col-span-1">
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        City *
-                      </label>
-                      <input
-                        type="text"
-                        name="city"
-                        value={shippingAddress.city}
-                        onChange={handleAddressChange}
-                        className={inputClasses('city')}
-                        placeholder="New York"
-                      />
-                      {addressErrors.city && <p className="text-destructive text-xs mt-1">{addressErrors.city}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        State *
-                      </label>
-                      <input
-                        type="text"
-                        name="state"
-                        value={shippingAddress.state}
-                        onChange={handleAddressChange}
-                        className={inputClasses('state')}
-                        placeholder="NY"
-                      />
-                      {addressErrors.state && <p className="text-destructive text-xs mt-1">{addressErrors.state}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        ZIP Code *
-                      </label>
-                      <input
-                        type="text"
-                        name="zipCode"
-                        value={shippingAddress.zipCode}
-                        onChange={handleAddressChange}
-                        className={inputClasses('zipCode')}
-                        placeholder="10001"
-                      />
-                      {addressErrors.zipCode && <p className="text-destructive text-xs mt-1">{addressErrors.zipCode}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Country
-                      </label>
-                      <select
-                        name="country"
-                        value={shippingAddress.country}
-                        onChange={handleAddressChange}
-                        className={inputClasses('country')}
+                    {savedAddresses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleAddNewAddress}
+                        className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
                       >
-                        <option value="US">United States</option>
-                        <option value="CA">Canada</option>
-                        <option value="GB">United Kingdom</option>
-                        <option value="AU">Australia</option>
-                      </select>
-                    </div>
+                        <Plus className="w-4 h-4" />
+                        Add New
+                      </button>
+                    )}
                   </div>
 
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={shippingAddress.phone}
-                      onChange={handleAddressChange}
-                      className={inputClasses('phone')}
-                      placeholder="+1 (555) 123-4567"
-                    />
-                    {addressErrors.phone && <p className="text-destructive text-xs mt-1">{addressErrors.phone}</p>}
-                  </div>
+                  {/* Saved Addresses */}
+                  {savedAddresses.length > 0 && !showAddressForm && (
+                    <div className="space-y-3 mb-6">
+                      <p className="text-sm text-muted-foreground mb-3">Select a saved address:</p>
+                      {savedAddresses.map((addr) => (
+                        <div
+                          key={addr.id}
+                          onClick={() => handleSelectAddress(addr)}
+                          className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                            selectedAddressId === addr.id 
+                              ? 'border-primary bg-primary/5' 
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          {selectedAddressId === addr.id && (
+                            <div className="absolute top-3 right-3">
+                              <Check className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteAddress(addr.id, e)}
+                            className="absolute bottom-3 right-3 p-1 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <p className="font-medium text-foreground">
+                            {addr.firstName} {addr.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {addr.address}, {addr.city}, {addr.state} {addr.zipCode}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{addr.phone}</p>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={handleAddNewAddress}
+                        className="w-full p-4 rounded-xl border-2 border-dashed border-border hover:border-primary/50 text-muted-foreground hover:text-primary transition-all flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Use a different address
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Address Form */}
+                  {showAddressForm && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            First Name *
+                          </label>
+                          <input
+                            type="text"
+                            name="firstName"
+                            value={shippingAddress.firstName}
+                            onChange={handleAddressChange}
+                            className={inputClasses('firstName')}
+                            placeholder="John"
+                          />
+                          {addressErrors.firstName && <p className="text-destructive text-xs mt-1">{addressErrors.firstName}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            Last Name *
+                          </label>
+                          <input
+                            type="text"
+                            name="lastName"
+                            value={shippingAddress.lastName}
+                            onChange={handleAddressChange}
+                            className={inputClasses('lastName')}
+                            placeholder="Doe"
+                          />
+                          {addressErrors.lastName && <p className="text-destructive text-xs mt-1">{addressErrors.lastName}</p>}
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Street Address *
+                        </label>
+                        <input
+                          type="text"
+                          name="address"
+                          value={shippingAddress.address}
+                          onChange={handleAddressChange}
+                          className={inputClasses('address')}
+                          placeholder="123 Main St, Apt 4B"
+                        />
+                        {addressErrors.address && <p className="text-destructive text-xs mt-1">{addressErrors.address}</p>}
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="col-span-2 md:col-span-1">
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            City *
+                          </label>
+                          <input
+                            type="text"
+                            name="city"
+                            value={shippingAddress.city}
+                            onChange={handleAddressChange}
+                            className={inputClasses('city')}
+                            placeholder="New York"
+                          />
+                          {addressErrors.city && <p className="text-destructive text-xs mt-1">{addressErrors.city}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            State *
+                          </label>
+                          <input
+                            type="text"
+                            name="state"
+                            value={shippingAddress.state}
+                            onChange={handleAddressChange}
+                            className={inputClasses('state')}
+                            placeholder="NY"
+                          />
+                          {addressErrors.state && <p className="text-destructive text-xs mt-1">{addressErrors.state}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            ZIP Code *
+                          </label>
+                          <input
+                            type="text"
+                            name="zipCode"
+                            value={shippingAddress.zipCode}
+                            onChange={handleAddressChange}
+                            className={inputClasses('zipCode')}
+                            placeholder="10001"
+                          />
+                          {addressErrors.zipCode && <p className="text-destructive text-xs mt-1">{addressErrors.zipCode}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            Country
+                          </label>
+                          <select
+                            name="country"
+                            value={shippingAddress.country}
+                            onChange={handleAddressChange}
+                            className={inputClasses('country')}
+                          >
+                            <option value="US">United States</option>
+                            <option value="CA">Canada</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="AU">Australia</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Phone Number *
+                        </label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={shippingAddress.phone}
+                          onChange={handleAddressChange}
+                          className={inputClasses('phone')}
+                          placeholder="+1 (555) 123-4567"
+                        />
+                        {addressErrors.phone && <p className="text-destructive text-xs mt-1">{addressErrors.phone}</p>}
+                      </div>
+
+                      {/* Save Address Checkbox */}
+                      <div className="mt-4 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="saveAddress"
+                          checked={saveThisAddress}
+                          onChange={(e) => setSaveThisAddress(e.target.checked)}
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                        />
+                        <label htmlFor="saveAddress" className="text-sm text-muted-foreground">
+                          Save this address for future orders
+                        </label>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Payment Section */}
