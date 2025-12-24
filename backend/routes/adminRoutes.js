@@ -8,6 +8,11 @@ const {
   getAllCategories,
   getDashboardStats
 } = require('../controllers/adminController');
+const {
+  getAllOrders,
+  updateOrderStatus,
+  getOrderStats
+} = require('../controllers/orderController');
 const { protect, adminOnly } = require('../middleware/auth');
 
 // All routes require authentication and admin role
@@ -28,5 +33,10 @@ router.route('/products/:id')
 
 // Categories
 router.get('/categories', getAllCategories);
+
+// Orders management
+router.get('/orders', getAllOrders);
+router.get('/orders/stats', getOrderStats);
+router.put('/orders/:id/status', updateOrderStatus);
 
 module.exports = router;

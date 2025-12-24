@@ -1,0 +1,261 @@
+const Order = require('../models/Order');
+
+/**
+ * Create a new order
+ * POST /api/orders
+ */
+const createOrder = async (req, res) => {
+  try {
+    const { items, shippingAddress, paymentMethod, subtotal, shippingCost, tax, total } = req.body;
+
+    // Validate required fields
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order must contain at least one item'
+      });
+    }
+
+    if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Shipping address is required'
+      });
+    }
+
+    if (!paymentMethod || !['stripe', 'cod'].includes(paymentMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid payment method is required'
+      });
+    }
+
+    const order = await Order.create({
+      user: req.user._id,
+      items,
+      shippingAddress,
+      paymentMethod,
+      paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending',
+      orderStatus: paymentMethod === 'cod' ? 'confirmed' : 'pending',
+      subtotal,
+      shippingCost,
+      tax,
+      total
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Order placed successfully',
+      data: order
+    });
+  } catch (error) {
+    console.error('Create order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create order',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get user's orders
+ * GET /api/orders
+ */
+const getUserOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      data: orders
+    });
+  } catch (error) {
+    console.error('Get orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch orders',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get single order by ID
+ * GET /api/orders/:id
+ */
+const getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+      user: req.user._id
+    }).lean();
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    console.error('Get order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Admin: Get all orders
+ * GET /api/admin/orders
+ */
+const getAllOrders = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    
+    const query = {};
+    if (status && status !== 'all') {
+      query.orderStatus = status;
+    }
+
+    const orders = await Order.find(query)
+      .populate('user', 'email')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .lean();
+
+    const total = await Order.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: orders,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get all orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch orders',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Admin: Update order status
+ * PUT /api/admin/orders/:id/status
+ */
+const updateOrderStatus = async (req, res) => {
+  try {
+    const { orderStatus, paymentStatus } = req.body;
+    
+    const updateFields = {};
+    if (orderStatus) updateFields.orderStatus = orderStatus;
+    if (paymentStatus) updateFields.paymentStatus = paymentStatus;
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      updateFields,
+      { new: true }
+    ).populate('user', 'email');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Order updated successfully',
+      data: order
+    });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update order',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Admin: Get order statistics
+ * GET /api/admin/orders/stats
+ */
+const getOrderStats = async (req, res) => {
+  try {
+    const [
+      totalOrders,
+      pendingOrders,
+      processingOrders,
+      shippedOrders,
+      deliveredOrders,
+      codOrders,
+      stripeOrders
+    ] = await Promise.all([
+      Order.countDocuments(),
+      Order.countDocuments({ orderStatus: 'pending' }),
+      Order.countDocuments({ orderStatus: 'processing' }),
+      Order.countDocuments({ orderStatus: 'shipped' }),
+      Order.countDocuments({ orderStatus: 'delivered' }),
+      Order.countDocuments({ paymentMethod: 'cod' }),
+      Order.countDocuments({ paymentMethod: 'stripe' })
+    ]);
+
+    // Calculate total revenue
+    const revenueResult = await Order.aggregate([
+      { $match: { paymentStatus: 'paid' } },
+      { $group: { _id: null, totalRevenue: { $sum: '$total' } } }
+    ]);
+
+    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalOrders,
+        pendingOrders,
+        processingOrders,
+        shippedOrders,
+        deliveredOrders,
+        codOrders,
+        stripeOrders,
+        totalRevenue
+      }
+    });
+  } catch (error) {
+    console.error('Get order stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order statistics',
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  createOrder,
+  getUserOrders,
+  getOrderById,
+  getAllOrders,
+  updateOrderStatus,
+  getOrderStats
+};

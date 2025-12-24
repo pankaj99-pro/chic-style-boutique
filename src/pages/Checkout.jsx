@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { 
   ChevronLeft, 
@@ -12,23 +12,29 @@ import {
   MapPin,
   Plus,
   Check,
-  Trash2
+  Trash2,
+  Banknote
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { supabase } from '../integrations/supabase/client';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const SAVED_ADDRESSES_KEY = 'signfashion_saved_addresses';
 
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
+  const { isAuthenticated, token } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
   
   // Saved addresses state
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -165,7 +171,6 @@ export default function Checkout() {
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
     setShippingAddress(prev => ({ ...prev, [name]: value }));
-    // Clear error when user types
     if (addressErrors[name]) {
       setAddressErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -185,10 +190,64 @@ export default function Checkout() {
     return Object.keys(errors).length === 0;
   };
 
-  const handleStripeCheckout = async (e) => {
+  // Create order in backend
+  const createOrderInBackend = async (paymentType) => {
+    const orderItems = items.map(item => ({
+      productId: item.product.id,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      size: item.size,
+      image: item.product.image
+    }));
+
+    const orderData = {
+      items: orderItems,
+      shippingAddress: {
+        fullName: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
+        address: shippingAddress.address,
+        city: shippingAddress.city,
+        state: shippingAddress.state,
+        zipCode: shippingAddress.zipCode,
+        country: shippingAddress.country,
+        phone: shippingAddress.phone
+      },
+      paymentMethod: paymentType,
+      subtotal: totalPrice,
+      shippingCost,
+      tax,
+      total: grandTotal
+    };
+
+    const response = await fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(orderData)
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to create order');
+    }
+    return data;
+  };
+
+  const handleCODCheckout = async (e) => {
     e.preventDefault();
     
-    // Validate address
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please login to place an order",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
     if (!validateAddress()) {
       toast({
         title: "Missing Information",
@@ -198,14 +257,50 @@ export default function Checkout() {
       return;
     }
     
-    // Optional email validation
+    if (saveThisAddress && showAddressForm) {
+      saveAddressToStorage();
+    }
+    
+    setIsProcessing(true);
+
+    try {
+      await createOrderInBackend('cod');
+      clearCart();
+      toast({
+        title: "Order Placed Successfully!",
+        description: "Your order has been confirmed. Pay when you receive your items.",
+      });
+      navigate('/orders');
+    } catch (error) {
+      console.error('COD checkout error:', error);
+      toast({
+        title: "Order Failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStripeCheckout = async (e) => {
+    e.preventDefault();
+    
+    if (!validateAddress()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required shipping fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (customerEmail && !/\S+@\S+\.\S+/.test(customerEmail)) {
       setEmailError('Please enter a valid email address');
       return;
     }
     setEmailError('');
     
-    // Save address if checkbox is checked
     if (saveThisAddress && showAddressForm) {
       saveAddressToStorage();
     }
@@ -224,7 +319,6 @@ export default function Checkout() {
       if (error) throw error;
 
       if (data?.url) {
-        // Save shipping address for order history
         localStorage.setItem('lastShippingAddress', JSON.stringify({
           fullName: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
           address: shippingAddress.address,
@@ -233,9 +327,7 @@ export default function Checkout() {
           zipCode: shippingAddress.zipCode,
           country: shippingAddress.country
         }));
-        // Clear cart before redirecting
         clearCart();
-        // Redirect to Stripe Checkout
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
@@ -248,6 +340,14 @@ export default function Checkout() {
         variant: "destructive",
       });
       setIsProcessing(false);
+    }
+  };
+
+  const handleCheckout = (e) => {
+    if (paymentMethod === 'cod') {
+      handleCODCheckout(e);
+    } else {
+      handleStripeCheckout(e);
     }
   };
 
@@ -276,7 +376,7 @@ export default function Checkout() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Checkout Form */}
             <div className="lg:col-span-2">
-              <form onSubmit={handleStripeCheckout} className="space-y-6">
+              <form onSubmit={handleCheckout} className="space-y-6">
                 {/* Shipping Address Section */}
                 <div className="bg-card rounded-2xl p-6 md:p-8 shadow-card animate-fade-in-up">
                   <div className="flex items-center justify-between mb-6">
@@ -446,6 +546,7 @@ export default function Checkout() {
                             onChange={handleAddressChange}
                             className={inputClasses('country')}
                           >
+                            <option value="IN">India</option>
                             <option value="US">United States</option>
                             <option value="CA">Canada</option>
                             <option value="GB">United Kingdom</option>
@@ -464,7 +565,7 @@ export default function Checkout() {
                           value={shippingAddress.phone}
                           onChange={handleAddressChange}
                           className={inputClasses('phone')}
-                          placeholder="+1 (555) 123-4567"
+                          placeholder="+91 98765 43210"
                         />
                         {addressErrors.phone && <p className="text-destructive text-xs mt-1">{addressErrors.phone}</p>}
                       </div>
@@ -486,37 +587,101 @@ export default function Checkout() {
                   )}
                 </div>
 
-                {/* Payment Section */}
+                {/* Payment Method Selection */}
                 <div className="bg-card rounded-2xl p-6 md:p-8 shadow-card animate-fade-in-up">
                   <div className="flex items-center gap-3 mb-6">
                     <CreditCard className="w-6 h-6 text-primary" />
                     <h2 className="font-display font-semibold text-xl text-foreground">
-                      Payment Information
+                      Payment Method
                     </h2>
                   </div>
 
-                  {/* Security Badge */}
-                  <div className="flex items-center gap-2 mb-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <Lock className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-green-700 dark:text-green-400">
-                      Secure checkout powered by Stripe
-                    </span>
+                  <div className="space-y-3">
+                    {/* Stripe Option */}
+                    <div
+                      onClick={() => setPaymentMethod('stripe')}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        paymentMethod === 'stripe' 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'stripe' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {paymentMethod === 'stripe' && (
+                            <div className="w-3 h-3 rounded-full bg-primary" />
+                          )}
+                        </div>
+                        <CreditCard className="w-5 h-5 text-primary" />
+                        <div>
+                          <p className="font-medium text-foreground">Pay Online (Card/UPI)</p>
+                          <p className="text-sm text-muted-foreground">Secure payment via Stripe</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* COD Option */}
+                    <div
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        paymentMethod === 'cod' 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'cod' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {paymentMethod === 'cod' && (
+                            <div className="w-3 h-3 rounded-full bg-primary" />
+                          )}
+                        </div>
+                        <Banknote className="w-5 h-5 text-green-600" />
+                        <div>
+                          <p className="font-medium text-foreground">Cash on Delivery (COD)</p>
+                          <p className="text-sm text-muted-foreground">Pay when you receive your order</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Optional Email */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Email Address (for order confirmation)
-                    </label>
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      className={`w-full px-4 py-3 rounded-xl border ${emailError ? 'border-destructive' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30`}
-                      placeholder="Enter your email for order confirmation"
-                    />
-                    {emailError && <p className="text-destructive text-xs mt-1">{emailError}</p>}
-                  </div>
+                  {/* COD Notice */}
+                  {paymentMethod === 'cod' && (
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        ⚡ Login required for COD orders. You'll pay ₹{grandTotal.toFixed(2)} when your order arrives.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Stripe: Optional Email */}
+                  {paymentMethod === 'stripe' && (
+                    <>
+                      <div className="flex items-center gap-2 my-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <Lock className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-700 dark:text-green-400">
+                          Secure checkout powered by Stripe
+                        </span>
+                      </div>
+
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Email Address (for order confirmation)
+                        </label>
+                        <input
+                          type="email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          className={`w-full px-4 py-3 rounded-xl border ${emailError ? 'border-destructive' : 'border-border'} bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                          placeholder="Enter your email for order confirmation"
+                        />
+                        {emailError && <p className="text-destructive text-xs mt-1">{emailError}</p>}
+                      </div>
+                    </>
+                  )}
 
                   {/* Order Items Preview */}
                   <div className="mb-6">
@@ -534,7 +699,7 @@ export default function Checkout() {
                             <p className="text-muted-foreground text-xs">Size: {item.size} × {item.quantity}</p>
                           </div>
                           <p className="font-medium text-primary text-sm">
-                            ${(item.product.price * item.quantity).toFixed(2)}
+                            ₹{(item.product.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       ))}
@@ -550,27 +715,40 @@ export default function Checkout() {
                     {isProcessing ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Redirecting to Payment...
+                        {paymentMethod === 'cod' ? 'Placing Order...' : 'Redirecting to Payment...'}
                       </>
                     ) : (
                       <>
-                        <Lock className="w-4 h-4" />
-                        Proceed to Payment
+                        {paymentMethod === 'cod' ? (
+                          <>
+                            <Banknote className="w-4 h-4" />
+                            Place COD Order
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-4 h-4" />
+                            Proceed to Payment
+                          </>
+                        )}
                       </>
                     )}
                   </button>
 
                   {/* Payment Methods */}
-                  <div className="flex justify-center gap-4 mt-6 opacity-60">
-                    <img src="https://cdn-icons-png.flaticon.com/128/349/349221.png" alt="Visa" className="h-6" />
-                    <img src="https://cdn-icons-png.flaticon.com/128/349/349228.png" alt="MasterCard" className="h-6" />
-                    <img src="https://cdn-icons-png.flaticon.com/128/196/196566.png" alt="Amex" className="h-6" />
-                    <img src="https://cdn-icons-png.flaticon.com/128/349/349230.png" alt="PayPal" className="h-6" />
-                  </div>
+                  {paymentMethod === 'stripe' && (
+                    <>
+                      <div className="flex justify-center gap-4 mt-6 opacity-60">
+                        <img src="https://cdn-icons-png.flaticon.com/128/349/349221.png" alt="Visa" className="h-6" />
+                        <img src="https://cdn-icons-png.flaticon.com/128/349/349228.png" alt="MasterCard" className="h-6" />
+                        <img src="https://cdn-icons-png.flaticon.com/128/196/196566.png" alt="Amex" className="h-6" />
+                        <img src="https://cdn-icons-png.flaticon.com/128/349/349230.png" alt="PayPal" className="h-6" />
+                      </div>
 
-                  <p className="text-center text-xs text-muted-foreground mt-4">
-                    You'll enter card details on Stripe's secure payment page
-                  </p>
+                      <p className="text-center text-xs text-muted-foreground mt-4">
+                        You'll enter card details on Stripe's secure payment page
+                      </p>
+                    </>
+                  )}
                 </div>
               </form>
             </div>
@@ -589,28 +767,28 @@ export default function Checkout() {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Subtotal ({items.length} items)</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>₹{totalPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Shipping</span>
-                    <span>{shippingCost === 0 ? <span className="text-green-600">Free</span> : `$${shippingCost.toFixed(2)}`}</span>
+                    <span>{shippingCost === 0 ? <span className="text-green-600">Free</span> : `₹${shippingCost.toFixed(2)}`}</span>
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Estimated Tax</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>₹{tax.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <div className="border-t border-border pt-4">
                   <div className="flex justify-between text-lg font-semibold text-foreground">
                     <span>Total</span>
-                    <span className="text-primary">${grandTotal.toFixed(2)}</span>
+                    <span className="text-primary">₹{grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
                 {shippingCost > 0 && (
                   <p className="text-xs text-muted-foreground mt-4 text-center">
-                    Add ${(100 - totalPrice).toFixed(2)} more for free shipping
+                    Add ₹{(100 - totalPrice).toFixed(2)} more for free shipping
                   </p>
                 )}
 
@@ -622,7 +800,7 @@ export default function Checkout() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
                     <Truck className="w-3 h-3" />
-                    <span>Free shipping over $100</span>
+                    <span>Free shipping over ₹100</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Package className="w-3 h-3" />
