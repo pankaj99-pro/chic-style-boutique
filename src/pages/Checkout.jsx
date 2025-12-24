@@ -286,6 +286,16 @@ export default function Checkout() {
   const handleStripeCheckout = async (e) => {
     e.preventDefault();
     
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please login to pay online",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+    
     if (!validateAddress()) {
       toast({
         title: "Missing Information",
@@ -657,9 +667,14 @@ export default function Checkout() {
                     </div>
                   )}
 
-                  {/* Stripe: Optional Email */}
+                    {/* Stripe: Login notice and Optional Email */}
                   {paymentMethod === 'stripe' && (
                     <>
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p className="text-sm text-blue-700 dark:text-blue-400">
+                          🔐 Login required for online payment
+                        </p>
+                      </div>
                       <div className="flex items-center gap-2 my-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                         <Lock className="w-4 h-4 text-green-600" />
                         <span className="text-sm text-green-700 dark:text-green-400">

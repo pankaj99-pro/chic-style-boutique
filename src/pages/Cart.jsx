@@ -137,7 +137,7 @@ export default function Cart() {
                       {/* Price & Remove */}
                       <div className="flex items-center gap-4">
                         <span className="font-semibold text-lg text-primary">
-                          ${(item.product.price * item.quantity).toFixed(2)}
+                          ₹{(item.product.price * item.quantity).toFixed(2)}
                         </span>
                         <button
                           onClick={() =>
@@ -172,7 +172,7 @@ export default function Cart() {
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>₹{totalPrice.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Shipping</span>
@@ -180,13 +180,13 @@ export default function Cart() {
                       {shippingCost === 0 ? (
                         <span className="text-green-600">Free</span>
                       ) : (
-                        `$${shippingCost.toFixed(2)}`
+                        `₹${shippingCost.toFixed(2)}`
                       )}
                     </span>
                   </div>
                   {shippingCost > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Free shipping on orders over $100
+                      Free shipping on orders over ₹100
                     </p>
                   )}
                 </div>
@@ -194,7 +194,7 @@ export default function Cart() {
                 <div className="border-t border-border pt-4 mb-6">
                   <div className="flex justify-between text-lg font-semibold text-foreground">
                     <span>Total</span>
-                    <span className="text-primary">${grandTotal.toFixed(2)}</span>
+                    <span className="text-primary">₹{grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
 
