@@ -6,9 +6,18 @@ const Order = require('../models/Order');
  */
 const createOrder = async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod, paymentStatus, subtotal, shippingCost, tax, total, stripeSessionId } = req.body;
+    const {
+      items,
+      shippingAddress,
+      paymentMethod,      // 'stripe' | 'cod' | 'razorpay'     // 'paid' | 'pending'
+      subtotal,
+      shippingCost,
+      tax,
+      total,
+      orderId   // use this for Stripe OR Razorpay order id
+    } = req.body;
 
-    // Validate required fields
+    // 1️⃣ Validate items
     if (!items || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -16,23 +25,29 @@ const createOrder = async (req, res) => {
       });
     }
 
-    if (!shippingAddress || !shippingAddress.fullName || !shippingAddress.address) {
+    // 2️⃣ Validate shipping address
+    if (
+      !shippingAddress ||
+      !shippingAddress.fullName ||
+      !shippingAddress.address
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Shipping address is required'
       });
     }
 
-    if (!paymentMethod || !['stripe', 'cod'].includes(paymentMethod)) {
+    // 3️⃣ Validate payment method
+    if (!paymentMethod || !['stripe', 'cod', 'razorpay'].includes(paymentMethod)) {
       return res.status(400).json({
         success: false,
         message: 'Valid payment method is required'
       });
     }
 
-    // Check if order with this stripe session already exists
-    if (stripeSessionId) {
-      const existingOrder = await Order.findOne({ stripeSessionId });
+    // 4️⃣ Prevent duplicate online orders (Stripe / Razorpay)
+    if (orderId && paymentMethod !== 'cod') {
+      const existingOrder = await Order.findOne({ orderId });
       if (existingOrder) {
         return res.status(200).json({
           success: true,
@@ -42,29 +57,44 @@ const createOrder = async (req, res) => {
       }
     }
 
+    // 5️⃣ Decide paymentStatus
+    let finalPaymentStatus = 'pending';
+    if (paymentMethod === 'cod') {
+      finalPaymentStatus = 'pending';
+    } else {
+      finalPaymentStatus = 'paid';
+    }
+
+    console.log(finalPaymentStatus);
+
+    // 6️⃣ Decide orderStatus
+    let finalOrderStatus = 'confirmed';
+
+    // 7️⃣ Create order
     const order = await Order.create({
       user: req.user._id,
       items,
       shippingAddress,
       paymentMethod,
-      paymentStatus: paymentStatus || (paymentMethod === 'cod' ? 'pending' : 'pending'),
-      orderStatus: paymentMethod === 'stripe' && paymentStatus === 'paid' ? 'confirmed' : (paymentMethod === 'cod' ? 'confirmed' : 'pending'),
+      paymentStatus: finalPaymentStatus,
+      orderStatus: finalOrderStatus,
       subtotal,
       shippingCost,
       tax,
       total,
-      stripeSessionId,
+      stripeSessionId : orderId, // store Razorpay orderId here also
       currency: 'INR'
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Order placed successfully',
       data: order
     });
+
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Failed to create order',
       error: error.message

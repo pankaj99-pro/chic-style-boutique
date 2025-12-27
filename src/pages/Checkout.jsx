@@ -13,7 +13,8 @@ import {
   Plus,
   Check,
   Trash2,
-  Banknote
+  Banknote,
+  Smartphone
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -24,6 +25,7 @@ import { supabase } from '../integrations/supabase/client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const SAVED_ADDRESSES_KEY = 'divyafashion_saved_addresses';
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
 export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
@@ -34,7 +36,7 @@ export default function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [paymentMethod, setPaymentMethod] = useState('razorpay');
   
   // Saved addresses state
   const [savedAddresses, setSavedAddresses] = useState([]);
@@ -144,7 +146,7 @@ export default function Checkout() {
     return (
       <>
         <Helmet>
-          <title>Checkout - Sign Fashion</title>
+          <title>Checkout - Divya</title>
         </Helmet>
         <Header />
         <main className="min-h-screen bg-background flex items-center justify-center">
@@ -191,7 +193,7 @@ export default function Checkout() {
   };
 
   // Create order in backend
-  const createOrderInBackend = async (paymentType) => {
+  const createOrderInBackend = async (paymentType, orderId) => {
     const orderItems = items.map(item => ({
       productId: item.product.id,
       name: item.product.name,
@@ -216,7 +218,8 @@ export default function Checkout() {
       subtotal: totalPrice,
       shippingCost,
       tax,
-      total: grandTotal
+      total: grandTotal,
+      orderId
     };
 
     const response = await fetch(`${API_URL}/orders`, {
@@ -353,9 +356,139 @@ export default function Checkout() {
     }
   };
 
+  const handleRazorpayCheckout = async (e) => {
+    e.preventDefault();
+    
+    if (!isAuthenticated) {
+      toast({
+        title: "Login Required",
+        description: "Please login to pay online",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+    
+    if (!validateAddress()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required shipping fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (saveThisAddress && showAddressForm) {
+      saveAddressToStorage();
+    }
+    
+    setIsProcessing(true);
+
+    try {
+      // Create Razorpay order
+      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+        body: {
+          items: items,
+          customerEmail: customerEmail || undefined,
+          shippingInfo: shippingAddress,
+        },
+      });
+
+      if (error) throw error;
+
+      if (!data?.orderId || !data?.keyId) {
+        throw new Error('Failed to create Razorpay order');
+      }
+
+      // Load Razorpay script if not already loaded
+      if (!window.Razorpay) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'Divya',
+        description: 'Fashion Purchase',
+        order_id: data.orderId,
+        handler: async function (response) {
+          try {
+            // Verify payment
+            const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
+              body: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+            });
+
+            if (verifyError || !verifyData?.verified) {
+              throw new Error('Payment verification failed');
+            }
+           // console.log(verifyData);
+
+            // Create order in backend
+            await createOrderInBackend('razorpay', data.orderId);
+
+            
+            clearCart();
+            toast({
+              title: "Payment Successful!",
+              description: "Your order has been placed successfully.",
+            });
+            navigate('/orders');
+          } catch (err) {
+            console.error('Payment verification error:', err);
+            toast({
+              title: "Payment Verification Failed",
+              description: "Please contact support if amount was deducted.",
+              variant: "destructive",
+            });
+          }
+        },
+        prefill: {
+          name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
+          email: customerEmail || '',
+          contact: shippingAddress.phone,
+        },
+        notes: {
+          address: `${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zipCode}`,
+        },
+        theme: {
+          color: '#000000',
+        },
+        modal: {
+          ondismiss: function() {
+            setIsProcessing(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Razorpay checkout error:', error);
+      toast({
+        title: "Checkout Failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    }
+  };
+
   const handleCheckout = (e) => {
     if (paymentMethod === 'cod') {
       handleCODCheckout(e);
+    } else if (paymentMethod === 'razorpay') {
+      handleRazorpayCheckout(e);
     } else {
       handleStripeCheckout(e);
     }
@@ -367,7 +500,7 @@ export default function Checkout() {
   return (
     <>
       <Helmet>
-        <title>Checkout - Sign Fashion</title>
+        <title>Checkout - Divya</title>
       </Helmet>
 
       <Header />
@@ -607,6 +740,31 @@ export default function Checkout() {
                   </div>
 
                   <div className="space-y-3">
+                    {/* Razorpay Option */}
+                    <div
+                      onClick={() => setPaymentMethod('razorpay')}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        paymentMethod === 'razorpay' 
+                          ? 'border-primary bg-primary/5' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'razorpay' ? 'border-primary' : 'border-muted-foreground'
+                        }`}>
+                          {paymentMethod === 'razorpay' && (
+                            <div className="w-3 h-3 rounded-full bg-primary" />
+                          )}
+                        </div>
+                        <Smartphone className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="font-medium text-foreground">Pay Online (UPI/Card/NetBanking)</p>
+                          <p className="text-sm text-muted-foreground">Secure payment via Razorpay</p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Stripe Option */}
                     <div
                       onClick={() => setPaymentMethod('stripe')}
@@ -626,7 +784,7 @@ export default function Checkout() {
                         </div>
                         <CreditCard className="w-5 h-5 text-primary" />
                         <div>
-                          <p className="font-medium text-foreground">Pay Online (Card/UPI)</p>
+                          <p className="font-medium text-foreground">International Cards</p>
                           <p className="text-sm text-muted-foreground">Secure payment via Stripe</p>
                         </div>
                       </div>
@@ -667,6 +825,23 @@ export default function Checkout() {
                     </div>
                   )}
 
+                  {/* Razorpay Notice */}
+                  {paymentMethod === 'razorpay' && (
+                    <>
+                      {!user && <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p className="text-sm text-blue-700 dark:text-blue-400">
+                          🔐 Login required for online payment
+                        </p>
+                      </div>}
+                      <div className="flex items-center gap-2 my-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                        <Lock className="w-4 h-4 text-green-600" />
+                        <span className="text-sm text-green-700 dark:text-green-400">
+                          Secure checkout powered by Razorpay
+                        </span>
+                      </div>
+                    </>
+                  )}
+
                     {/* Stripe: Login notice and Optional Email */}
                   {paymentMethod === 'stripe' && (
                     <>
@@ -697,6 +872,7 @@ export default function Checkout() {
                       </div>
                     </>
                   )}
+
 
                   {/* Order Items Preview */}
                   <div className="mb-6">
