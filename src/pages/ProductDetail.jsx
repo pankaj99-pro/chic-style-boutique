@@ -81,7 +81,7 @@ export default function ProductDetail() {
   return (
     <>
       <Helmet>
-        <title>{product.name} - Sign Fashion</title>
+        <title>{product.name} - Divya</title>
         <meta name="description" content={product.description} />
       </Helmet>
 

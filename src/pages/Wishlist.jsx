@@ -33,7 +33,7 @@ export default function Wishlist() {
     return (
       <>
         <Helmet>
-          <title>Your Wishlist - Sign Fashion</title>
+          <title>Your Wishlist - Divya</title>
         </Helmet>
 
         <Header />
@@ -64,7 +64,7 @@ export default function Wishlist() {
   return (
     <>
       <Helmet>
-        <title>{`Your Wishlist (${items.length}) - Sign Fashion`}</title>
+        <title>{`Your Wishlist (${items.length}) - Divya`}</title>
       </Helmet>
 
       <Header />
