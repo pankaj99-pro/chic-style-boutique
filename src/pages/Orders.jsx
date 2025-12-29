@@ -87,7 +87,7 @@ const Orders = () => {
     return (
       <>
         <Helmet>
-          <title>Order History | Sign Fashion</title>
+          <title>Order History | Divya</title>
         </Helmet>
         <Header />
         <main className="min-h-screen bg-background py-12">
@@ -111,7 +111,7 @@ const Orders = () => {
   return (
     <>
       <Helmet>
-        <title>Order History | Sign Fashion</title>
+        <title>Order History | Divya</title>
         <meta name="description" content="View your order history and track previous purchases" />
       </Helmet>
       

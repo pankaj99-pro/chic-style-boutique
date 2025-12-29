@@ -34,7 +34,7 @@ export default function Cart() {
     return (
       <>
         <Helmet>
-          <title>Your Cart - Sign Fashion</title>
+          <title>Your Cart - Divya</title>
         </Helmet>
 
         <Header />
@@ -65,7 +65,7 @@ export default function Cart() {
   return (
     <>
       <Helmet>
-        <title>{`Your Cart (${items.length}) - Sign Fashion`}</title>
+        <title>{`Your Cart (${items.length}) - Divya`}</title>
       </Helmet>
 
       <Header />

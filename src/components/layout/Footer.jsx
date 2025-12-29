@@ -67,15 +67,15 @@ export default function Footer() {
             <ul className="space-y-4">
               <li className="flex items-start gap-3 text-muted-foreground">
                 <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <span>471-473 Metro City, Old City, CA, USA</span>
+                <span>Bodro, Bhendra Bokaro Jharkhand 828401</span>
               </li>
               <li className="flex items-center gap-3 text-muted-foreground">
                 <Phone className="w-5 h-5 text-primary flex-shrink-0" />
-                <span>+1 234 567 890</span>
+                <span>6205636164</span>
               </li>
               <li className="flex items-center gap-3 text-muted-foreground">
                 <Mail className="w-5 h-5 text-primary flex-shrink-0" />
-                <span>info@signfashion.com</span>
+                <span>pankajsony9304@gmail.com</span>
               </li>
             </ul>
           </div>
@@ -118,7 +118,7 @@ export default function Footer() {
         <div className="border-t border-border pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-muted-foreground text-sm">
-              © 2024 Sign Fashion. All rights reserved.
+              © 2024 Divya. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               <img src="https://cdn-icons-png.flaticon.com/128/349/349221.png" alt="Visa" className="h-6 opacity-60" />
