@@ -11,10 +11,10 @@ export default function Footer() {
   ];
 
   const helpfulLinks = [
-    { name: 'About Us', path: '#' },
-    { name: 'Services', path: '#' },
-    { name: 'Privacy Policy', path: '#' },
-    { name: 'Terms & Conditions', path: '#' },
+    { name: 'About Us', path: '/about' },
+    { name: 'Services', path: '/services' },
+    { name: 'Privacy Policy', path: '/privacy-policy' },
+    { name: 'Terms & Conditions', path: '/terms-and-conditions' },
   ];
 
   return (

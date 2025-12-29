@@ -16,6 +16,10 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Wishlist from "./pages/Wishlist";
 import Orders from "./pages/Orders";
 import Auth from "./pages/Auth";
+import AboutUs from "./pages/AboutUs";
+import Services from "./pages/Services";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndConditions from "./pages/TermsAndConditions";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import AdminProducts from "./pages/admin/Products.jsx";
 import AdminProductEdit from "./pages/admin/ProductEdit.jsx";
@@ -44,6 +48,10 @@ const App = () => (
                   <Route path="/wishlist" element={<Wishlist />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/about" element={<AboutUs />} />
+                  <Route path="/services" element={<Services />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin/products" element={<AdminProducts />} />
                   <Route path="/admin/products/new" element={<AdminProductEdit />} />
