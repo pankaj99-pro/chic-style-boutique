@@ -9,6 +9,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,11 +45,20 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <span className="text-3xl font-display font-bold text-primary italic">
-              Divya
-            </span>
-          </Link>
+          {/* Logo */}
+{/* Logo */}
+<Link
+  to="/"
+  className="flex items-center max-w-[200px] sm:max-w-[180px] md:max-w-[260px]"
+>
+  <img
+    src="/logo.png"
+    alt="Divya Fashion"
+    className="w-full h-auto object-contain"
+  />
+</Link>
+
+
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
@@ -82,7 +92,7 @@ export default function Header() {
           </nav>
 
           {/* Icons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Search */}
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -177,6 +187,7 @@ export default function Header() {
             </button>
           </div>
         </div>
+        
 
         {/* Search Bar */}
         {isSearchOpen && (
