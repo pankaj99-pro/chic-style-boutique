@@ -52,7 +52,7 @@ export default function Header() {
   className="flex items-center max-w-[200px] sm:max-w-[180px] md:max-w-[260px]"
 >
   <img
-    src="/logo.png"
+    src="https://res.cloudinary.com/dka65hnht/image/upload/v1771692561/Logo_g61bmz.png"
     alt="Divya Fashion"
     className="w-full h-auto object-contain"
   />
