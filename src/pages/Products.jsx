@@ -95,8 +95,8 @@ export default function Products() {
   return (
     <>
       <Helmet>
-        <title>Shop All Products - Sign Fashion</title>
-        <meta name="description" content="Browse our complete collection of women's fashion. Find dresses, tops, skirts, and more at Sign Fashion." />
+        <title>Shop All Products - Divya</title>
+        <meta name="description" content="Browse our complete collection of women's fashion. Find dresses, tops, skirts, and more at Divya." />
       </Helmet>
 
       <Header />

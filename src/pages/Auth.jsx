@@ -95,7 +95,7 @@ export default function Auth() {
     <>
       <Helmet>
         <title>{isLogin ? 'Sign In' : 'Create Account'} - Divya Fashion</title>
-        <meta name="description" content={isLogin ? 'Sign in to your Sign Fashion account' : 'Create a new Sign Fashion account'} />
+        <meta name="description" content={isLogin ? 'Sign in to your Divya account' : 'Create a new Divya account'} />
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-background via-cream to-background flex">

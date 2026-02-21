@@ -12,8 +12,8 @@ export default function Index() {
   return (
     <>
       <Helmet>
-        <title>Sign Fashion - Premium Women's Summer Collection</title>
-        <meta name="description" content="Discover our exclusive summer collection of women's fashion. Shop trendy dresses, tops, skirts and more at Sign Fashion." />
+        <title>Divya - Premium Women's Summer Collection</title>
+        <meta name="description" content="Discover our exclusive summer collection of women's fashion. Shop trendy dresses, tops, skirts and more at Divya." />
       </Helmet>
 
       <Header />

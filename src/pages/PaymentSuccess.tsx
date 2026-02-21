@@ -113,7 +113,7 @@ export default function PaymentSuccess() {
     return (
       <>
         <Helmet>
-          <title>Verifying Payment - Sign Fashion</title>
+          <title>Verifying Payment - Divya</title>
         </Helmet>
         <Header />
         <main className="min-h-screen bg-background flex items-center justify-center">
@@ -131,7 +131,7 @@ export default function PaymentSuccess() {
     return (
       <>
         <Helmet>
-          <title>Payment Error - Sign Fashion</title>
+          <title>Payment Error - Divya</title>
         </Helmet>
         <Header />
         <main className="min-h-screen bg-background flex items-center justify-center">
@@ -159,7 +159,7 @@ export default function PaymentSuccess() {
   return (
     <>
       <Helmet>
-        <title>Order Confirmed - Sign Fashion</title>
+        <title>Order Confirmed - Divya</title>
       </Helmet>
 
       <Header />
